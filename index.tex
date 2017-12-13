@@ -40,11 +40,31 @@
 }
 \makeatother
 
-\title{Parallel Optimization and Machine Learning}
-\date{\today}
-\author{Fabian Pedregosa}
-\institute{UC Berkeley}
+\title{\huge Parallel Optimization and Machine Learning}
+\author{
+\large{\bfseries Fabian Pedregosa}}
+% {\normalsize{ includes work with Remi Leblond and Simon Lacoste-Julien}}}
+% \author{
+% \hspace{4.8em}\includegraphics[width=0.2\linewidth]{img/remi}
+% \hspace{4.8em}\includegraphics[width=0.2\linewidth]{img/SLJ}
+% }\\
+% {\normalsize\vphantom{}\hspace{0.5em} Fabian Pedregosa \hspace{3.5em} R\'emi Leblond \hspace{2.2em} Simon Lacoste--Julien}\\
+% \vphantom{}\\
+% \vphantom{}\includegraphics[width=0.3\linewidth]{img/logo_inria}
+% \includegraphics[width=0.12\linewidth]{img/ens.png}
+% \hspace{0.5em}\includegraphics[width=0.3\linewidth]{img/montreal}
+% \hspace{0.5em}\includegraphics[width=0.2\linewidth]{img/mila}
+% }
+% 
+\institute{
+
+{\centerline{\hspace{3em}\includegraphics[width=0.3\linewidth]{img/Berkeley_wordmark_gold_no_uc}\hspace*{2em}
+\includegraphics[width=0.3\linewidth]{img/eth_logo_kurz_neg}\hspace*{2em}
+{\includegraphics[width=0.25\linewidth]{img/eu}}
+}}
+}
 %\titlegraphic{\hfill\includegraphics[height=1.5cm]{figures/UCBerkeley_wordmark_blue.eps}}
+\date{\today~{Huawei Paris Research Center}}
 
 \begin{document}
 
@@ -58,25 +78,32 @@
   \end{picture}
   }
 \begin{frame}{About me}
-\begin{column}{0.5\textwidth}  %%<--- here
+\begin{columns}
+\begin{column}{0.4\textwidth}  %%<--- here
 \end{column}
-\begin{column}{0.5\textwidth}  %%<--- here
+\begin{column}{0.6\textwidth}  %%<--- here
+\begin{itemize}
+\item Engineer (2010-2012), Inria Saclay.
+\item PhD (2012-2015, Inria Saclay)
+\item Postdoc (2015-2016), Dauphine-ENS.
+\item Postdoc (2017-present), UC Berkeley - ETH Zurich.
+\end{itemize}
 \end{column}
+\end{columns}
 \end{frame}
 }
 
 \metroset{background=dark} % change background theme according to manual
-\begin{frame}{Today's lecture}
-  \begin{itemize}
-    \item Student presentation
-    \item Unsupervised learning: PCA and K-means.
-    \item Hands on applications: 
-    \begin{itemize}
-    \item Faces ``basis'' or eigenfaces.
-    \item Stock market analysis using clustering.
-    \end{itemize}
-    \item Next lecture: deep learning (machine learning competition)
-  \end{itemize}
+
+\begin{frame}{Motivation}
+\includegraphics[width=0.5\linewidth]{img/old_ad}
+\includegraphics[width=0.5\linewidth]{img/2006_ad}
+Motivation. Couple of slides on speed of processors.
+\end{frame}
+
+
+\begin{frame}{Outline}
+synchronous and asynchronous optimization
 \end{frame}
 % 
 % \begin{frame}{Logistic regression}
