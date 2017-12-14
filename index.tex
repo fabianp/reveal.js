@@ -96,15 +96,71 @@
 \metroset{background=dark} % change background theme according to manual
 
 \begin{frame}{Motivation}
-\includegraphics[width=0.5\linewidth]{img/old_ad}
-\includegraphics[width=0.5\linewidth]{img/2006_ad}
-Motivation. Couple of slides on speed of processors.
+\begin{columns}[T] % align columns
+\begin{column}{.5\textwidth}
+\centering{Computer add in 1993}
+\includegraphics[width=1.05\linewidth]{img/old_ad}
+\end{column}%
+\hfill%
+\begin{column}{.5\textwidth}
+\centering{Computer add in 2006}
+\includegraphics[width=\linewidth]{img/2006_ad}
+\end{column}%
+\end{columns}
+What has changed?
+\pause
+2006 = no longer mentions to speed of processors
+\end{frame}
+
+
+\begin{frame}{Moore's law}
+\begin{quote}
+The complexity for minimum component costs 
+has increased at a rate of roughly a factor of 
+two per year. Certainly over the short term this 
+rate can be expected to continue
+\end{quote}
+Gordon Moore (Intel), 1965
+\end{frame}
+
+
+\begin{frame}{40 years of CPU trends}
+\centering\includegraphics[width=0.8\linewidth]{img/moore_law}
+
+\begin{itemize}[<+->]
+\item Speed of CPUs has stagnated since 2005;
+\item Multi-core architectures are here to stay.
+\end{itemize}
+\pause {\bfseries Parallel algorithms needed to take advantage of modern CPUs.}
 \end{frame}
 
 
 \begin{frame}{Outline}
-synchronous and asynchronous optimization
+
+{\bfseries Goal of the talk} state of the art in parallel optimization methods in machine learning
+
+\begin{columns}[T] % align columns
+\begin{column}{.5\textwidth}
+ADMM
+\end{column}%
+\hfill%
+\begin{column}{.5\textwidth}
+
+\end{column}%
+\end{columns}
+
 \end{frame}
+
+\begin{frame}{Outline}
+Parallel algorithms can be divided into two 
+synchronous and asynchronous optimization
+
+\begin{figure}
+\includegraphics[width=\linewidth]{img/sync_vs_async}
+\caption{Image credits: Wotao}
+\end{figure}
+\end{frame}
+
 % 
 % \begin{frame}{Logistic regression}
 %     Pillar of supervised learning. One of the most common methods
@@ -236,13 +292,13 @@ synchronous and asynchronous optimization
 % 
 % 
 % 
-% \nocite{*}
-% 
-% \begin{frame}[allowframebreaks]{References}
-% 
-%   \bibliography{demo}
-%   \bibliographystyle{abbrv}
-% 
-% \end{frame}
+\nocite{*}
+
+\begin{frame}[allowframebreaks]{References}
+
+  \bibliography{demo}
+  \bibliographystyle{abbrv}
+
+\end{frame}
 
 \end{document}
