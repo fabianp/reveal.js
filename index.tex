@@ -17,6 +17,8 @@
 \usepackage{fourier-orns}
 \usepackage{xspace}
 
+\usepackage[scale=2]{ccicons}
+\usepackage{fontawesome}
 
 
 \usepackage[backend=bibtex,style=authoryear]{biblatex}
@@ -277,17 +279,20 @@ The problem: supervised learning.
 \end{frame}
 
 
-\begin{frame}{XXX}
+\begin{frame}{Optimization for machine learning}
 \begin{center}
-{ Minimize $F(x) = \frac{1}{n}\sum^{n}_{i=1} f_i(x)$}
+{ Minimize $F(x) = \displaystyle\frac{1}{n}\sum^{n}_{i=1} f_i(x)$}
 \end{center}
 
 \begin{columns}
 \begin{column}{0.5\textwidth}  %%<--- here
-Gradient descent [Cauchy, 1847]: descend along $-\nabla F'(x)$
+{\bfseries Gradient descent} [Cauchy, 1847]: descend along $-\nabla F'(x)$
 
 Updates of the form $$x^+ = x - \gamma \nabla F'(x)$$
-Stochastic gradient descent (SGD) [Robbins and Monro, 1951]: select a random index $i$ and descent along $~\nabla f_i(x)$,
+
+
+
+{\bfseries Stochastic gradient descent} (SGD) [Robbins and Monro, 1951]: select a random index $i$ and descent along $~\nabla f_i(x)$,
 
 Updates of the form $$x^+ = x - \gamma \nabla f_i(x)$$
 
@@ -310,6 +315,133 @@ Updates of the form $$x^+ = x - \gamma \nabla f_i(x)$$
 Images source: Francis Bach
 
 \end{frame}
+
+
+
+
+\begin{frame}{Composite objective}
+
+\faExclamationTriangle~These methods assume objective function is smooth
+
+Cannot be applied to Lasso, Group Lasso, box constraints, etc.
+
+\pause 
+\vspace{5mm}
+{\bfseries Objective}: minimize composite objective function:
+$$
+\minimize_{\xx} f(\xx) + h(\xx)~,~ \text{ with $f(x) = \textstyle \frac{1}{n}\sum_{i=1}^n f_i(\xx)$}
+$$
+where $f_i$ is smooth and $h$ is a block-separable (i.e., $h(\boldsymbol{x}) = \sum_{B} h([\boldsymbol{x}]_B)$) convex function for which we have access to its proximal operator.
+\end{frame}
+
+
+
+% \begin{frame}{Sparse Proximal SAGA}
+% 
+% {\bfseries Contribution 1: Sparse Proximal SAGA.} Variant of SAGA \parencite{defazio2014saga}, particularly efficient when $\nabla f_i$ are sparse.
+% % \vspace{0.5em}\begin{equation*}\tag{SAGA}
+% % \xx^+ = \prox_{\gamma h}(\xx - \gamma (\nabla f_i(\xx) - \balpha_i + \overline{\balpha}))\,;~\balpha_i^+ = \nabla f_i(\xx)~.
+% % \end{equation*}
+% 
+% % \begin{align}
+% %     \vphantom{\sum}\vv_i &= \nabla f_i(\xx) - \balpha_i + \tikzmarkin<2>{a}\DD_i\tikzmarkend{a} \overline{\balpha}\,\\
+% %     \vphantom{\sum}\xx^+ &= \prox_{\gamma \varphi_i}\big(\xx - \gamma \vv_i \big)\,;~
+% %     \balpha_i^+ = \nabla f_i(\xx)
+% % \end{align}
+% 
+% \onslide<2->{Like SAGA, it relies on \rnode{a}{unbiased gradient} estimate} \onslide<3->{ and \rnode{b}{proximal step}}
+% 
+% % \[
+% % \onslide<2->{
+% %       \vv_i \rnode[t]{ae}{=} \nabla f_i(\xx) - \balpha_i + \DD_i \overline{\balpha}\,; }
+% % \onslide<3->{%
+% %   ~\xx^+ = \rnode[t]{be}{\prox}_{\gamma \varphi_i}(\xx - \gamma \vv_i)\,;~\balpha_i^+ = \nabla f_i(\xx)}
+% % \] 
+% %  \onslide<2->{\nccurve[angleA=-90,angleB=90, linecolor=gray]{->}{a}{ae}}
+% %  \onslide<3->{\nccurve[angleA=-90, angleB=90, linecolor=gray]{->}{b}{be}}
+%  
+%  \onslide<4->{
+%  {Unlike SAGA}, and $\varphi_i$ are designed to give sparse updates while verifying unbiasedness conditions.}
+%  
+% \onslide<5->{ {\bfseries Convergence:} same linear convergence rate as SAGA, with cheaper updates in presence of sparsity. 
+%  }
+% \end{frame}
+
+
+\begin{frame}{Proximal Asynchronous SAGA (ProxASAGA)}
+
+{\bfseries Contribution 2: Proximal Asynchronous SAGA (ProxASAGA).} Each core
+ runs Sparse Proximal SAGA asynchronously without locks and updates $\xx$, $\balpha$ and $\overline{\balpha}$ in shared memory.
+
+\vspace{0.5em} \faRandom~All read/write operations to shared memory are \emph{inconsistent}, i.e., no performance destroying vector-level locks while reading/writing.
+
+{\bfseries Convergence:} under sparsity assumptions, ProxASAGA converges with the same rate as the sequential algorithm $\implies$ theoretical linear speedup with respect to the number of cores.
+\end{frame}
+
+
+\begin{frame}{Empirical results}
+
+
+
+% \begin{columns}[T] % align columns
+% \begin{column}{.35\textwidth}
+% \end{column}%
+% \hfill%
+% \begin{column}{.65\textwidth}
+% \includegraphics[width=1\linewidth]{img/prox_asaga_1}
+% \end{column}%
+% \end{columns}
+
+ProxASAGA vs competing methods on 3 large-scale datasets, $\ell_1$-regularized logistic regression
+
+\vspace{0em}\begingroup
+\fontsize{9pt}{10pt}\selectfont
+\begin{table}
+\centering
+%\resizebox{\linewidth}{!}{
+\begin{tabular}{lrrrrr}
+\toprule
+{\bfseries\sffamily Dataset} & \multicolumn{1}{c}{$n$} & \multicolumn{1}{c}{$p$} & {{density}} & \multicolumn{1}{c}{$L$} & $\Delta$\\
+\midrule
+{\bfseries\sffamily KDD 2010} & \hfill 19,264,097 & \hfill 1,163,024 & \hfill $10^{-6}$ & \hfill 28.12 & 0.15\\
+{\bfseries\sffamily KDD 2012} & \hfill 149,639,105 & \hfill 54,686,452 & \hfill $2 \times 10^{-7}$ & \hfill $1.25$ & 0.85\\
+{\bfseries\sffamily Criteo} & \hfill 45,840,617 & \hfill 1,000,000 & \hfill $4 \times 10^{-5}$ & \hfill $1.25$ & 0.89\\
+\bottomrule
+\end{tabular}
+%}
+%\vspace{-5mm}
+\end{table}
+\endgroup
+
+
+\includegraphics[width=1\linewidth]{img/prox_asaga_1}
+
+\end{frame}
+
+
+\begin{frame}{Empirical results - Speedup}
+
+$$
+\text{Speedup} = \frac{\text{Time to $10^{-10}$ suboptimality 
+on one core}}{\text{Time to same suboptimality on $k$ cores}}
+$$
+
+\includegraphics[width=\linewidth]{img/prox_asaga_2}
+
+\begin{itemize}
+\pause \item ProxASAGA achieves speedups between 6x and 12x on a 20 cores architecture.
+
+\pause \vspace{0.5em}\item As predicted by theory, there is a high correlation between degree of sparsity and speedup.
+\end{itemize}
+
+\pause Thanks for your attention, see you at {\bfseries poster \#159}.
+\end{frame}
+% 
+% \begin{frame}{References}
+% \cite{pedregosa20016three}.
+% \bibliographystyle{apalike}
+% \printbibliography
+% \end{frame}
 
 
 
