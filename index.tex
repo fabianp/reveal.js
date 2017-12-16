@@ -210,7 +210,7 @@ synchronous and asynchronous methods.
 {\bfseries Motivating examples:}
 \begin{itemize}
 \item Linear prediction: $h(\boldsymbol{a}, \xx) = \xx^T\boldsymbol{a}$
-\item Neural networks: $h(\boldsymbol{a}, \xx) = \xx_m^T \sigma(\xx_{m-1})$
+\item Neural networks: $h(\boldsymbol{a}, \xx) = \xx_m^T \sigma(\xx_{m-1}\cdots)$
 \end{itemize}
 
 \only<1>{
@@ -237,7 +237,7 @@ net/.style={
 ]
 \matrix[net] (mat)
 {
-|[plain]| \parbox{1.3cm}{\centering Input\\layer} \& |[plain]| \parbox{1.0cm}{\centering Hidden\\layer} \& |[plain]| \parbox{1.3cm}{\centering Output\\layer} \\
+|[plain]| \parbox{1.3cm}{\centering \Large Input\\layer} \& |[plain]| \parbox{1.0cm}{\centering\Large Hidden\\layer} \& |[plain]| \parbox{1.3cm}{\centering \Large Output\\layer} \\
 \& |[plain]| \\
 |[plain]| \& \\
 \& |[plain]| \\
@@ -248,7 +248,7 @@ net/.style={
   |[plain]| \& \\
 \& |[plain]| \\    };
 \foreach \ai [count=\mi ]in {2,4,...,10}
-  \draw[<-] (mat-\ai-1) -- node[above] {Input \mi} +(-2cm,0);
+  \draw[<-] (mat-\ai-1) -- node[above] {$\boldsymbol{a}_{\mi}$} +(-2cm,0);
 \foreach \ai in {2,4,...,10}
 {\foreach \aii in {3,6,9}
   \draw[->] (mat-\ai-1) -- (mat-\aii-2);
@@ -258,19 +258,20 @@ net/.style={
 \draw[->] (mat-6-3) -- node[above] {Ouput} +(2cm,0);
 \end{tikzpicture}
 }
+\only<2>{
+{\bfseries Minimize some distance (e.g., quadratic) between the prediction}
+$$
+\minimize_{\xx} \frac{1}{n}\sum_{i=1}^n \ell(\boldsymbol{b}_i, h(\boldsymbol{a}_i, \xx)) \stackrel{\text{notation}}{=} \frac{1}{n}\sum_{i=1}^n f_i(\xx)
+$$
+}
+
+
 
 \note{
 The kind of parallelization will depend on the problem.
 The kind of problem that we will be interested in
 The problem: supervised learning.
 }
-
-\only<2>{
-Common abstraction in optimization: minimize a finite sum
-}
-\end{frame}
-
-\begin{frame}{X}
 
 
 \end{frame}
@@ -283,12 +284,12 @@ Common abstraction in optimization: minimize a finite sum
 
 \begin{columns}
 \begin{column}{0.5\textwidth}  %%<--- here
-Gradient descent [Cauchy, 1847]: descend along $-F'(x)$
+Gradient descent [Cauchy, 1847]: descend along $-\nabla F'(x)$
 
-Updates of the form $$x^+ = x - \gamma F'(x)$$
-Stochastic gradient descent (SGD) [Robbins and Monro, 1951]: select a random index $i$ and descent along $~f_i'(x)$,
+Updates of the form $$x^+ = x - \gamma \nabla F'(x)$$
+Stochastic gradient descent (SGD) [Robbins and Monro, 1951]: select a random index $i$ and descent along $~\nabla f_i(x)$,
 
-Updates of the form $$x^+ = x - \gamma^k f_i'(x)$$
+Updates of the form $$x^+ = x - \gamma \nabla f_i(x)$$
 
 \end{column}
 \begin{column}{0.5\textwidth}  %%<--- here
