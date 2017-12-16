@@ -1,4 +1,4 @@
-\documentclass[10pt]{beamer}
+\documentclass[10pt, notes]{beamer}
 
 \usetheme[background=dark, numbering=fraction]{metropolis}
 \usepackage{appendixnumberbeamer}
@@ -16,19 +16,8 @@
 \usepgfplotslibrary{dateplot}
 \usepackage{fourier-orns}
 \usepackage{xspace}
-\usepackage{tikz}
-\usetikzlibrary{scopes,matrix,positioning}
-\tikzset{
-  mymx/.style={matrix of math nodes,nodes=myball,column sep=4em,row sep=-1ex},
-  myball/.style={draw,circle,inner sep=0pt},
-  mylabel/.style={midway,sloped,fill=white,inner sep=1pt,outer sep=1pt,below,
-    execute at begin node={$\scriptstyle},execute at end node={$}},
-  plain/.style={draw=none,fill=none},
-  sel/.append style={fill=green!10},
-  prevsel/.append style={fill=red!10},
-  route/.style={-latex,thick},
-  selroute/.style={route,blue!50!green}
-}
+
+
 
 \usepackage[backend=bibtex,style=authoryear]{biblatex}
 \addbibresource{index.bib}
@@ -37,9 +26,9 @@
 
 
 \newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
-\DeclareMathOperator*{\argmin}{arg\,min}
-\DeclareMathOperator*{\minimize}{minimize}
-\DeclareMathOperator*{\maximize}{maximize}
+% \DeclareMathOperator*{\argmin}{arg\,min}
+% \DeclareMathOperator*{\minimize}{minimize}
+% \DeclareMathOperator*{\maximize}{maximize}
 
 \makeatletter
 \renewcommand{\metropolis@colors@dark}{%
@@ -57,6 +46,10 @@
   \usebeamercolor[fg]{normal text}%
 }
 \makeatother
+
+\usepackage{tikz}
+\usetikzlibrary{matrix,chains,positioning,decorations.pathreplacing,arrows}
+
 
 \title{\huge Parallel Optimization and Machine Learning}
 \author{
@@ -84,6 +77,10 @@
 %\titlegraphic{\hfill\includegraphics[height=1.5cm]{figures/UCBerkeley_wordmark_blue.eps}}
 \date{\vspace{1em}\today~{Huawei Paris Research Center}}
 
+\input defs.tex
+
+
+
 \begin{document}
 
 \maketitle
@@ -108,6 +105,9 @@
 \end{itemize}
 \end{column}
 \end{columns}
+
+\note{I should start by presenting myself. I started my career as an engineer }
+
 \end{frame}
 }
 
@@ -169,8 +169,8 @@ Gordon Moore (Intel), 1975 [paraphrased]
 \begin{column}{.5\textwidth}
 {\centering \bfseries Synchronous methods}
 \begin{itemize}
-\item ADMM
 \item MapReduce (and variants: Hadoop, Spark)
+\item ADMM
 \item COCOA
 \end{itemize}
 \end{column}%
@@ -200,56 +200,112 @@ synchronous and asynchronous methods.
 \end{frame}
 
 
-\begin{frame}{The problem}
+\begin{frame}{Supervised Machine Learning}
+
+{\bfseries Data}: $n$ observations $(\boldsymbol{a}_i, b_i) \in \mathbb{R}^p \times \mathbb{R}$
+
+{\bfseries Prediction function}: $h(\boldsymbol{a}, \boldsymbol{x}) \in \RR$
+
+
+{\bfseries Motivating examples:}
+\begin{itemize}
+\item Linear prediction: $h(\boldsymbol{a}, \xx) = \xx^T\boldsymbol{a}$
+\item Neural networks: $h(\boldsymbol{a}, \xx) = \xx_m^T \sigma(\xx_{m-1})$
+\end{itemize}
+
+\only<1>{
+\begin{tikzpicture}[
+ampersand replacement=\&,
+scale=0.6,
+every node/.style={scale=0.6},
+plain/.style={
+  draw=none,
+  fill=none,
+  },
+net/.style={
+  matrix of nodes,
+  nodes={
+    draw,
+    circle,
+    inner sep=10pt
+    },
+  nodes in empty cells,
+  column sep=2cm,
+  row sep=-9pt
+  },
+>=latex
+]
+\matrix[net] (mat)
+{
+|[plain]| \parbox{1.3cm}{\centering Input\\layer} \& |[plain]| \parbox{1.0cm}{\centering Hidden\\layer} \& |[plain]| \parbox{1.3cm}{\centering Output\\layer} \\
+\& |[plain]| \\
+|[plain]| \& \\
+\& |[plain]| \\
+  |[plain]| \& |[plain]| \\
+\& \& \\
+  |[plain]| \& |[plain]| \\
+\& |[plain]| \\
+  |[plain]| \& \\
+\& |[plain]| \\    };
+\foreach \ai [count=\mi ]in {2,4,...,10}
+  \draw[<-] (mat-\ai-1) -- node[above] {Input \mi} +(-2cm,0);
+\foreach \ai in {2,4,...,10}
+{\foreach \aii in {3,6,9}
+  \draw[->] (mat-\ai-1) -- (mat-\aii-2);
+}
+\foreach \ai in {3,6,9}
+  \draw[->] (mat-\ai-2) -- (mat-6-3);
+\draw[->] (mat-6-3) -- node[above] {Ouput} +(2cm,0);
+\end{tikzpicture}
+}
+
+\note{
 The kind of parallelization will depend on the problem.
-
 The kind of problem that we will be interested in
-
 The problem: supervised learning.
+}
 
+\only<2>{
 Common abstraction in optimization: minimize a finite sum
+}
 \end{frame}
 
 \begin{frame}{X}
 
-\begin{tikzpicture}
-  \matrix[mymx] (mx) {
-    &|[prevsel]| f_1(e) \\
-    |[plain]| x_1 && f_4(e) \\
-    &|[sel]| f_2(e) && f_6(e) & |[plain]| y \\
-    |[plain]| x_2 && f_5(e) \\
-    & f_3(e) \\
-  };
-  {[route]
-    \foreach \y in {2,4} {
-      \draw (mx-\y-1) -- (mx-1-2);
-      \draw (mx-\y-1) -- (mx-5-2);
-      \draw (mx-\y-3) -- (mx-3-4); }
-    \foreach \y in {1,3,5} {
-      \draw (mx-\y-2) -- (mx-2-3);
-      \draw (mx-\y-2) -- (mx-4-3); }
-    \draw (mx-3-4) -- (mx-3-5);
-  }
-  {[selroute]
-    \draw (mx-2-1) -- (mx-3-2) node[mylabel,above] { W_{(x1)2} };
-    \draw (mx-4-1) -- (mx-3-2) node[mylabel] { W_{(x2)2} };
-  }
-  \node[above right=of mx.center]  {$ y_2 = f_2 (w_{(x1)2} x_1 + w_{(x2)2} x_2) $};
-\end{tikzpicture}
 
 \end{frame}
 
 
 \begin{frame}{XXX}
-Minimize $F(x) = \frac{1}{n}\sum^{n}_{i=1} f_i(x)$
+\begin{center}
+{ Minimize $F(x) = \frac{1}{n}\sum^{n}_{i=1} f_i(x)$}
+\end{center}
 
+\begin{columns}
+\begin{column}{0.5\textwidth}  %%<--- here
 Gradient descent [Cauchy, 1847]: descend along $-F'(x)$
 
 Updates of the form $$x^+ = x - \gamma F'(x)$$
 Stochastic gradient descent (SGD) [Robbins and Monro, 1951]: select a random index $i$ and descent along $~f_i'(x)$,
 
-
 Updates of the form $$x^+ = x - \gamma^k f_i'(x)$$
+
+\end{column}
+\begin{column}{0.5\textwidth}  %%<--- here
+\includegraphics[width=\linewidth]{img/gd}
+
+\vspace{2em}
+\includegraphics[width=\linewidth]{img/sgd}
+
+\end{column}
+\end{columns}
+
+
+
+
+
+
+
 Images source: Francis Bach
 
 \end{frame}
