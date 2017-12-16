@@ -16,6 +16,24 @@
 \usepgfplotslibrary{dateplot}
 \usepackage{fourier-orns}
 \usepackage{xspace}
+\usepackage{tikz}
+\usetikzlibrary{scopes,matrix,positioning}
+\tikzset{
+  mymx/.style={matrix of math nodes,nodes=myball,column sep=4em,row sep=-1ex},
+  myball/.style={draw,circle,inner sep=0pt},
+  mylabel/.style={midway,sloped,fill=white,inner sep=1pt,outer sep=1pt,below,
+    execute at begin node={$\scriptstyle},execute at end node={$}},
+  plain/.style={draw=none,fill=none},
+  sel/.append style={fill=green!10},
+  prevsel/.append style={fill=red!10},
+  route/.style={-latex,thick},
+  selroute/.style={route,blue!50!green}
+}
+
+\usepackage[backend=bibtex,style=authoryear]{biblatex}
+\addbibresource{index.bib}
+\renewcommand*{\bibfont}{\scriptsize}
+
 
 
 \newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
@@ -58,13 +76,13 @@
 % 
 \institute{
 
-{\centerline{\hspace{3em}\includegraphics[width=0.3\linewidth]{img/Berkeley_wordmark_gold_no_uc}\hspace*{2em}
+{\centerline{\hspace{2em}\includegraphics[width=0.3\linewidth]{img/Berkeley_wordmark_gold_no_uc}\hspace*{2em}
 \includegraphics[width=0.3\linewidth]{img/eth_logo_kurz_neg}\hspace*{2em}
 {\includegraphics[width=0.25\linewidth]{img/eu}}
 }}
 }
 %\titlegraphic{\hfill\includegraphics[height=1.5cm]{figures/UCBerkeley_wordmark_blue.eps}}
-\date{\today~{Huawei Paris Research Center}}
+\date{\vspace{1em}\today~{Huawei Paris Research Center}}
 
 \begin{document}
 
@@ -85,8 +103,8 @@
 \begin{itemize}
 \item Engineer (2010-2012), Inria Saclay.
 \item PhD (2012-2015, Inria Saclay)
-\item Postdoc (2015-2016), Dauphine-ENS.
-\item Postdoc (2017-present), UC Berkeley - ETH Zurich.
+\item Postdoc (2015-2016), Dauphine--ENS--Inria Paris.
+\item Postdoc (2017-present), UC Berkeley - ETH Zurich (Marie-Curie fellowship, European Commission)
 \end{itemize}
 \end{column}
 \end{columns}
@@ -121,6 +139,12 @@ two per year. Certainly over the short term this
 rate can be expected to continue
 \end{quote}
 Gordon Moore (Intel), 1965
+
+\hspace{1em}\begin{quote}
+OK, maybe a factor of two every two 
+years.
+\end{quote}
+Gordon Moore (Intel), 1975 [paraphrased]
 \end{frame}
 
 
@@ -137,121 +161,101 @@ Gordon Moore (Intel), 1965
 
 \begin{frame}{Outline}
 
-{\bfseries Goal of the talk} state of the art in parallel optimization methods in machine learning
+{\bfseries Goal of the talk:} overview and state of the art in parallel optimization methods in machine learning.
+
+\medskip
 
 \begin{columns}[T] % align columns
 \begin{column}{.5\textwidth}
-ADMM
+{\centering \bfseries Synchronous methods}
+\begin{itemize}
+\item ADMM
+\item MapReduce (and variants: Hadoop, Spark)
+\item COCOA
+\end{itemize}
 \end{column}%
 \hfill%
 \begin{column}{.5\textwidth}
-
+{\centering \bfseries Asynchronous methods}
+\begin{itemize}
+\item Asynchronous SGD
+\item Variance-reduced methods
+\end{itemize}
 \end{column}%
 \end{columns}
+\vspace{1em}
+
+Along the way, analysis of algorithms, our recent work.
 
 \end{frame}
 
 \begin{frame}{Outline}
-Parallel algorithms can be divided into two 
-synchronous and asynchronous optimization
+Parallel algorithms can be divided  large categories: 
+synchronous and asynchronous methods.
 
 \begin{figure}
 \includegraphics[width=\linewidth]{img/sync_vs_async}
-\caption{Image credits: Wotao}
+{\small Image credits: \parencite{peng2016arock}}
 \end{figure}
 \end{frame}
 
-% 
-% \begin{frame}{Logistic regression}
-%     Pillar of supervised learning. One of the most common methods
-% 
-%     Two motivations
-% 	\begin{itemize}
-% 		\item As a probabilistic model.
-% 		\item Mathematical optimization.
-% 	\end{itemize}
-% \end{frame}
-% 
-% 
-% 
-% \section{Probabilistic model}
-% 
-% \begin{frame}[fragile]{Probabilistic view}
-% \begin{center}
-% {\bfseries Motivation}: classification problem with two classes.
-% 
-% \vspace{1em}Classes = ``-1'' and ``1'', which represent outcomes such as pass/fail, win/lose, alive/dead or healthy/sick, etc.
-% 
-% \vspace{1em}
-% \danger\alert{Despite its name, logistic regression is a model for classification and not regression.}
-% \end{center}
-% \end{frame}
-% 
-% \begin{frame}[fragile]{Probabilistic view}
-% \begin{center}
-% {\bfseries Motivation}: Cancer / no cancer as a function of biomarker.
-% \includegraphics[width=0.8\linewidth]{figures/logistic_1.pdf}
-% 
-% \end{center}
-% \end{frame}
-% 
-% \begin{frame}[fragile]{Probabilistic view}
-% \begin{center}
-% {\bfseries Motivation}: Cancer / no cancer as a function of biomarker.
-% \includegraphics[width=0.8\linewidth]{figures/logistic_2.pdf}
-% 
-% \pause
-% \alert{Goal}: Given new data, estimate the probability of having cancer \hfill \\
-% $\iff$ estimate {$P(Y=1|X)$}
-% \end{center}
-% \end{frame}
-% 
-% 
-% \begin{frame}[fragile]{Probabilistic view}
-% 
-% 
-% \begin{columns}[t]
-% \begin{column}{.5\textwidth}
-% One popular model for  {$P(Y=1|X)$} is the logistic model,
-% 
-% \begin{align*}
-% &P(Y=y_i|X=x_i) = \sigma(y_i(x_i^T \beta_1 + \beta_0))\\
-% &\quad \text{with } \sigma(t) = \frac{\exp(t)}{1 + \exp(t)}
-% \end{align*}
-% 
-% \end{column}
-% \begin{column}{.5\textwidth}
-% \adjincludegraphics[width=0.8\linewidth,valign=t]{figures/sigmoid}\hfill\\
-% The logistic function $\sigma(t)$
-% \end{column}
-% \end{columns}
-% 
-% \vspace{1em}
-% In the 1D case we have 2 degrees of freedom, $\beta_1, \beta_0$ that control the slope and intercept of the approximation.
-% \pause
-% In the $p$-dimensional case, we have $p+1$-degrees of freedom, as $\beta_1 \in \mathbb{R}^p, \beta_i \in \mathbb{R}$
-% \end{frame}
-% 
-% 
-% \begin{frame}[fragile]{Inference}
-% The coefficients $\beta_1, \beta_0$ can be estimated as the ones that maximize the likelihood given the current data $\{(y_1, x_1), \ldots, (x_n, y_n)\}$.
-% $$
-% \maximize_{\beta_1, \beta_0}\,\ell(\beta_1, \beta_0) = \prod^n_{i=1} P(Y=y_i|X=x_i)
-% $$
-% 
-% \pause
-% Although for numerical reasons we rather minimize the minus log-likelihood
-% \begin{align}
-% \minimize_{\beta_1, \beta_0}\,-\log(\ell(\beta_1, \beta_0)) &= \sum^n_{i=1} -\log(P(Y=y_i|X=x_i))\\
-% &= \sum^n_{i=1} \log(1 + \exp(-y_i ( x_i^T \beta_1 + \beta_0)))\label{eq:log_loss}
-% \end{align}
-% \end{frame}
-% 
-% \section{Regularization}
-% 
-% \begin{frame}
-% In the $p$-dimensional setting. 
-% \end{frame}
+
+\begin{frame}{The problem}
+The kind of parallelization will depend on the problem.
+
+The kind of problem that we will be interested in
+
+The problem: supervised learning.
+
+Common abstraction in optimization: minimize a finite sum
+\end{frame}
+
+\begin{frame}{X}
+
+\begin{tikzpicture}
+  \matrix[mymx] (mx) {
+    &|[prevsel]| f_1(e) \\
+    |[plain]| x_1 && f_4(e) \\
+    &|[sel]| f_2(e) && f_6(e) & |[plain]| y \\
+    |[plain]| x_2 && f_5(e) \\
+    & f_3(e) \\
+  };
+  {[route]
+    \foreach \y in {2,4} {
+      \draw (mx-\y-1) -- (mx-1-2);
+      \draw (mx-\y-1) -- (mx-5-2);
+      \draw (mx-\y-3) -- (mx-3-4); }
+    \foreach \y in {1,3,5} {
+      \draw (mx-\y-2) -- (mx-2-3);
+      \draw (mx-\y-2) -- (mx-4-3); }
+    \draw (mx-3-4) -- (mx-3-5);
+  }
+  {[selroute]
+    \draw (mx-2-1) -- (mx-3-2) node[mylabel,above] { W_{(x1)2} };
+    \draw (mx-4-1) -- (mx-3-2) node[mylabel] { W_{(x2)2} };
+  }
+  \node[above right=of mx.center]  {$ y_2 = f_2 (w_{(x1)2} x_1 + w_{(x2)2} x_2) $};
+\end{tikzpicture}
+
+\end{frame}
+
+
+\begin{frame}{XXX}
+Minimize $F(x) = \frac{1}{n}\sum^{n}_{i=1} f_i(x)$
+
+Gradient descent [Cauchy, 1847]: descend along $-F'(x)$
+
+Updates of the form $$x^+ = x - \gamma F'(x)$$
+Stochastic gradient descent (SGD) [Robbins and Monro, 1951]: select a random index $i$ and descent along $~f_i'(x)$,
+
+
+Updates of the form $$x^+ = x - \gamma^k f_i'(x)$$
+Images source: Francis Bach
+
+\end{frame}
+
+
+
 % 
 % \begin{frame}[fragile]{Generalization}
 % This approach can be naturally generalized to $K$ classes.
@@ -292,13 +296,10 @@ synchronous and asynchronous optimization
 % 
 % 
 % 
-\nocite{*}
-
-\begin{frame}[allowframebreaks]{References}
-
-  \bibliography{demo}
-  \bibliographystyle{abbrv}
-
-\end{frame}
+\begin{frame}[noframenumbering, allowframebreaks]
+\nocite{pedregosa2017proxasaga}
+  % \frametitle{References}
+  \printbibliography
+ \end{frame}
 
 \end{document}
