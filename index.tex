@@ -1,4 +1,4 @@
-\documentclass[10pt, notes]{beamer}
+\documentclass[10pt]{beamer}
 
 \usetheme[background=dark, numbering=fraction]{metropolis}
 \usepackage{appendixnumberbeamer}
@@ -164,10 +164,10 @@ Gordon Moore (Intel), 1975 [paraphrased]
 \end{frame}
 
 
-\begin{frame}{Outline}
-
-{\bfseries Goal of the talk:} overview and state of the art in parallel optimization methods in machine learning.
-\end{frame}
+% \begin{frame}{Outline}
+% 
+% {\bfseries Goal of the talk:} overview and state of the art in parallel optimization methods in machine learning.
+% \end{frame}
 
 
 
@@ -214,7 +214,7 @@ Parallel algorithms can be divided  large categories:
 
 
 
-\begin{frame}{Outline of this talk}
+\begin{frame}{Outline}
 \vspace{2em}\begin{columns}[T] % align columns
 \begin{column}{.4\textwidth}
 {\centering \bfseries Synchronous methods}
@@ -227,9 +227,9 @@ Parallel algorithms can be divided  large categories:
 {\centering \bfseries Asynchronous methods}
 \begin{itemize}
 \item Asynchronous SGD (Hogwild)~\parencite{hogwild2011}
-\item Asynchronous SGD variance-reduced stochastic methods~\parencite{leblond2016Asaga}, \parencite{pedregosa2017proxasaga}.
+\item Asynchronous variance-reduced stochastic methods~\parencite{leblond2016Asaga}, \parencite{pedregosa2017proxasaga}.
 \item Analysis of asynchronous methods. 
-\item Implementation -- success and challenges.
+\item Codes and implementation aspects.
 \end{itemize}
 \end{column}%
 \end{columns}
@@ -274,12 +274,35 @@ $$x^+ = x - \gamma \nabla f_i(x)$$
 
 \begin{frame}{Parallelizing gradient descent}
 
-Bottleneck in gradient descent $=$ compute $\nabla F(\xx)$.
+Bottleneck in gradient descent $=$ compute $\nabla f(\xx)$.
 
-Idea: Parallelize $\nabla f(\xx)$
+{\bfseries Idea:} Parallelize computation of $\nabla f(\xx)$:
+\begin{align*}
+\nabla f(\xx) &= \frac{1}{n} \sum_{i=1} \nabla f_i(\xx)\\ \pause
+&= X
+\end{align*}
 
 \end{frame}
 
+\begin{frame}{XX}
+This can also be extended to minibatch gradient descent.
+
+Instead of choosing one sample, choose a subset of $k$ samples, and compute their gradient in parallel.
+
+This is the parallelization implemented in most software: Hadoop, Tensorflow, PyTorch, etc.
+\end{frame}
+
+\begin{frame}{XX}
+Asynchronous
+\end{frame}
+
+\begin{frame}{XX}
+XX
+\end{frame}
+
+\begin{frame}{XX}
+SAGA, available in scikit-learn as
+\end{frame}
 
 
 \begin{frame}{Composite objective}
