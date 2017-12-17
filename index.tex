@@ -24,7 +24,10 @@
 \usepackage[backend=bibtex,style=authoryear]{biblatex}
 \addbibresource{index.bib}
 \renewcommand*{\bibfont}{\scriptsize}
-
+\let\oldcite=\cite                                                              
+\renewcommand{\cite}[1]{\textcolor[rgb]{.7,.7,.7}{\oldcite{#1}}}
+\let\oldparencite=\parencite                                                         
+\renewcommand{\parencite}[1]{\textcolor[rgb]{.7,.7,.7}{\oldparencite{#1}}}
 
 
 \newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
@@ -164,158 +167,118 @@ Gordon Moore (Intel), 1975 [paraphrased]
 \begin{frame}{Outline}
 
 {\bfseries Goal of the talk:} overview and state of the art in parallel optimization methods in machine learning.
+\end{frame}
 
-\medskip
+
+
+
+\begin{frame}{Parallel optimization}
+Parallel algorithms can be divided  large categories: 
+{\bfseries synchronous} and {\bfseries asynchronous}.
+
+\begin{figure}
+\vspace{-1em}\begin{flushright}\vspace{-1em}{\scriptsize Image credits: \parencite{peng2016arock}}\end{flushright}
+\vspace{-0.5em}\includegraphics[width=0.8\linewidth]{img/sync_vs_async}
+\vspace{-0.5em}\end{figure}
+
 
 \begin{columns}[T] % align columns
 \begin{column}{.5\textwidth}
 {\centering \bfseries Synchronous methods}
+
+\vspace{0.5em}
+~\faCheck~Easy to implement (i.e., developed software packages).
+
+\vspace{0.5em}
+~\faCheck~Well understood.
+
+\vspace{0.5em}
+~\faClose~Limited speedup due to synchronization costs..
+\end{column}
+\begin{column}{.5\textwidth}
+{\centering \bfseries Asynchronous methods}
+
+\vspace{0.5em}
+~\faCheck~Faster, typically larger speedups.
+
+\vspace{0.5em}
+~\faClose~Not well understood, large gap between theory and practice.
+
+\vspace{0.5em}
+~\faClose~No mature software solutions.
+
+\end{column}%
+\end{columns}
+
+\end{frame}
+
+
+
+\begin{frame}{Outline of this talk}
+\vspace{2em}\begin{columns}[T] % align columns
+\begin{column}{.4\textwidth}
+{\centering \bfseries Synchronous methods}
 \begin{itemize}
-\item MapReduce (and variants: Hadoop, Spark)
-\item ADMM
-\item COCOA
+\item Synchronous (stochastic) gradient descent.
 \end{itemize}
 \end{column}%
 \hfill%
-\begin{column}{.5\textwidth}
+\begin{column}{.6\textwidth}
 {\centering \bfseries Asynchronous methods}
 \begin{itemize}
-\item Asynchronous SGD
-\item Variance-reduced methods
+\item Asynchronous SGD (Hogwild)~\parencite{hogwild2011}
+\item Asynchronous SGD variance-reduced stochastic methods~\parencite{leblond2016Asaga}, \parencite{pedregosa2017proxasaga}.
+\item Analysis of asynchronous methods. 
+\item Implementation -- success and challenges.
 \end{itemize}
 \end{column}%
 \end{columns}
 \vspace{1em}
 
-Along the way, analysis of algorithms, our recent work.
+Leaving out many parallel synchronous methods: ADMM~\parencite{glowinski1975approximation}, CoCoA~\parencite{NIPS2014_5599}, DANE~\parencite{shamir2014communication}, to name a few.
 
 \end{frame}
 
-\begin{frame}{Outline}
-Parallel algorithms can be divided  large categories: 
-synchronous and asynchronous methods.
-
-\begin{figure}
-\includegraphics[width=\linewidth]{img/sync_vs_async}
-{\small Image credits: \parencite{peng2016arock}}
-\end{figure}
-\end{frame}
 
 
-\begin{frame}{Supervised Machine Learning}
-
-{\bfseries Data}: $n$ observations $(\boldsymbol{a}_i, b_i) \in \mathbb{R}^p \times \mathbb{R}$
-
-{\bfseries Prediction function}: $h(\boldsymbol{a}, \boldsymbol{x}) \in \RR$
-
-
-{\bfseries Motivating examples:}
-\begin{itemize}
-\item Linear prediction: $h(\boldsymbol{a}, \xx) = \xx^T\boldsymbol{a}$
-\item Neural networks: $h(\boldsymbol{a}, \xx) = \xx_m^T \sigma(\xx_{m-1}\cdots)$
-\end{itemize}
-
-\only<1>{
-\begin{tikzpicture}[
-ampersand replacement=\&,
-scale=0.6,
-every node/.style={scale=0.6},
-plain/.style={
-  draw=none,
-  fill=none,
-  },
-net/.style={
-  matrix of nodes,
-  nodes={
-    draw,
-    circle,
-    inner sep=10pt
-    },
-  nodes in empty cells,
-  column sep=2cm,
-  row sep=-9pt
-  },
->=latex
-]
-\matrix[net] (mat)
-{
-|[plain]| \parbox{1.3cm}{\centering \Large Input\\layer} \& |[plain]| \parbox{1.0cm}{\centering\Large Hidden\\layer} \& |[plain]| \parbox{1.3cm}{\centering \Large Output\\layer} \\
-\& |[plain]| \\
-|[plain]| \& \\
-\& |[plain]| \\
-  |[plain]| \& |[plain]| \\
-\& \& \\
-  |[plain]| \& |[plain]| \\
-\& |[plain]| \\
-  |[plain]| \& \\
-\& |[plain]| \\    };
-\foreach \ai [count=\mi ]in {2,4,...,10}
-  \draw[<-] (mat-\ai-1) -- node[above] {$\boldsymbol{a}_{\mi}$} +(-2cm,0);
-\foreach \ai in {2,4,...,10}
-{\foreach \aii in {3,6,9}
-  \draw[->] (mat-\ai-1) -- (mat-\aii-2);
-}
-\foreach \ai in {3,6,9}
-  \draw[->] (mat-\ai-2) -- (mat-6-3);
-\draw[->] (mat-6-3) -- node[above] {Ouput} +(2cm,0);
-\end{tikzpicture}
-}
-\only<2>{
-{\bfseries Minimize some distance (e.g., quadratic) between the prediction}
-$$
-\minimize_{\xx} \frac{1}{n}\sum_{i=1}^n \ell(\boldsymbol{b}_i, h(\boldsymbol{a}_i, \xx)) \stackrel{\text{notation}}{=} \frac{1}{n}\sum_{i=1}^n f_i(\xx)
-$$
-}
-
-
-
-\note{
-The kind of parallelization will depend on the problem.
-The kind of problem that we will be interested in
-The problem: supervised learning.
-}
-
-
-\end{frame}
 
 
 \begin{frame}{Optimization for machine learning}
-\begin{center}
-{ Minimize $F(x) = \displaystyle\frac{1}{n}\sum^{n}_{i=1} f_i(x)$}
-\end{center}
-
+Large part of problems in machine learning can be framed as optimization problems of the form
+$$\minimize_x f(x) \defas \displaystyle\frac{1}{n}\sum^{n}_{i=1} f_i(x)$$
 \begin{columns}
-\begin{column}{0.5\textwidth}  %%<--- here
-{\bfseries Gradient descent} [Cauchy, 1847]: descend along $-\nabla F'(x)$
-
-Updates of the form $$x^+ = x - \gamma \nabla F'(x)$$
-
+\begin{column}{0.6\textwidth}  %%<--- here
+{\bfseries Gradient descent} \parencite{cauchy1847methode}. Descend along steepest direction ($-\nabla f(x)$)
+$$x^+ = x - \gamma \nabla f(x)$$
 
 
-{\bfseries Stochastic gradient descent} (SGD) [Robbins and Monro, 1951]: select a random index $i$ and descent along $~\nabla f_i(x)$,
 
-Updates of the form $$x^+ = x - \gamma \nabla f_i(x)$$
+{\bfseries Stochastic gradient descent} (SGD) \parencite{robbins1951sgd}. Select a random index $i$ and descent along $~\nabla f_i(x)$:
+$$x^+ = x - \gamma \nabla f_i(x)$$
 
 \end{column}
-\begin{column}{0.5\textwidth}  %%<--- here
+\begin{column}{0.4\textwidth}  %%<--- here
 \includegraphics[width=\linewidth]{img/gd}
 
 \vspace{2em}
 \includegraphics[width=\linewidth]{img/sgd}
-
+\begin{flushright}{\footnotesize images source: Francis Bach}\end{flushright}
 \end{column}
 \end{columns}
-
-
-
-
-
-
-
-Images source: Francis Bach
-
 \end{frame}
 
+
+
+
+
+
+\begin{frame}{Parallelizing gradient descent}
+
+Bottleneck in gradient descent $=$ compute $\nabla F(\xx)$.
+
+Idea: Parallelize $\nabla f(\xx)$
+
+\end{frame}
 
 
 
@@ -436,55 +399,98 @@ $$
 
 \pause Thanks for your attention, see you at {\bfseries poster \#159}.
 \end{frame}
-% 
-% \begin{frame}{References}
-% \cite{pedregosa20016three}.
-% \bibliographystyle{apalike}
-% \printbibliography
-% \end{frame}
+
+\begin{frame}{XX}
+
+\faGithub~Code is in github: \url{https://github.com/fabianp/ProxASAGA}
+
+A very efficient implementation of SAGA can be found in scikit-learn
+\end{frame}
 
 
 
-% 
-% \begin{frame}[fragile]{Generalization}
-% This approach can be naturally generalized to $K$ classes.
-% \begin{align}
-% \Pr(Y_i=1) &= \frac{e^{\boldsymbol\beta_1 \cdot \mathbf{X}_i}}{1 + \sum_{k=1}^{K-1} e^{\boldsymbol\beta_k \cdot \mathbf{X}_i}} \nonumber \\
-% \Pr(Y_i=2) &= \frac{e^{\boldsymbol\beta_2 \cdot \mathbf{X}_i}}{1 + \sum_{k=1}^{K-1} e^{\boldsymbol\beta_k \cdot \mathbf{X}_i}} \\
-% \cdots & \cdots \\
-% \Pr(Y_i=K-1) &= \frac{e^{\boldsymbol\beta_{K-1} \cdot \mathbf{X}_i}}{1 + \sum_{k=1}^{K-1} e^{\boldsymbol\beta_k \cdot \mathbf{X}_i}}
-% \end{align}
-% \end{frame}
-% 
-% 
-% \begin{frame}[fragile]{Application}
-% Lets use this to predict the future!
-% 
-% \pause
-% Use the data from the religion dataset to predict how religious beliefs will evolve after 2017
-% 
-% \includegraphics[width=0.5\linewidth]{figures/religion.png}
-% 
-% \pause
-% Suggestion: use scikit-learn's LogisticRegression class with {multi\_class='multinomial'}. Use as features the year and cohort. The model can predict probabilities with method predict\_proba.
-% 
-% \end{frame}
-% 
-% 
-% 
-% \begin{frame}[fragile]{Application}
-% 
-% 
-% To predict, use the same data but with year and cohort shifted accordingly.
-% 
-% \includegraphics[width=0.5\linewidth]{figures/logistic_future.png}
-% 
-% 
-% 
-% \end{frame}
-% 
-% 
-% 
+\begin{frame}{Supervised Machine Learning}
+
+{\bfseries Data}: $n$ observations $(\boldsymbol{a}_i, b_i) \in \mathbb{R}^p \times \mathbb{R}$
+
+{\bfseries Prediction function}: $h(\boldsymbol{a}, \boldsymbol{x}) \in \RR$
+
+
+{\bfseries Motivating examples:}
+\begin{itemize}
+\item Linear prediction: $h(\boldsymbol{a}, \xx) = \xx^T\boldsymbol{a}$
+\item Neural networks: $h(\boldsymbol{a}, \xx) = \xx_m^T \sigma(\xx_{m-1}\sigma(\cdots\xx_2^T\sigma(\xx_1^T\boldsymbol{a}))$
+\end{itemize}
+
+\only<1>{
+\begin{tikzpicture}[
+ampersand replacement=\&,
+scale=0.6,
+every node/.style={scale=0.6},
+plain/.style={
+  draw=none,
+  fill=none,
+  },
+net/.style={
+  matrix of nodes,
+  nodes={
+    draw,
+    circle,
+    inner sep=10pt
+    },
+  nodes in empty cells,
+  column sep=2cm,
+  row sep=-9pt
+  },
+>=latex
+]
+\matrix[net] (mat)
+{
+|[plain]| \parbox{1.3cm}{\centering \Large Input\\layer} \& |[plain]| \parbox{1.0cm}{\centering\Large Hidden\\layer} \& |[plain]| \parbox{1.3cm}{\centering \Large Output\\layer} \\
+\& |[plain]| \\
+|[plain]| \& \\
+\& |[plain]| \\
+  |[plain]| \& |[plain]| \\
+\& \& \\
+  |[plain]| \& |[plain]| \\
+\& |[plain]| \\
+  |[plain]| \& \\
+\& |[plain]| \\    };
+\foreach \ai [count=\mi ]in {2,4,...,10}
+  \draw[<-] (mat-\ai-1) -- node[above] {$\boldsymbol{a}_{\mi}$} +(-2cm,0);
+\foreach \ai in {2,4,...,10}
+{\foreach \aii in {3,6,9}
+  \draw[->] (mat-\ai-1) -- (mat-\aii-2);
+}
+\foreach \ai in {3,6,9}
+  \draw[->] (mat-\ai-2) -- (mat-6-3);
+\draw[->] (mat-6-3) -- node[above] {Ouput} +(2cm,0);
+\end{tikzpicture}
+}
+\only<2>{
+{\bfseries Minimize some distance (e.g., quadratic) between the prediction}
+$$
+\minimize_{\xx} \frac{1}{n}\sum_{i=1}^n \ell(\boldsymbol{b}_i, h(\boldsymbol{a}_i, \xx)) \stackrel{\text{notation}}{=} \frac{1}{n}\sum_{i=1}^n f_i(\xx)
+$$
+where popular examples of $\ell$ are
+\begin{itemize}
+\item Squared loss, $ \ell(\boldsymbol{b}_i, h(\boldsymbol{a}_i, \xx)) \defas (\boldsymbol{b}_i - h(\boldsymbol{a}_i, \xx))^2$
+\item Logistic (softmax), $ \ell(\boldsymbol{b}_i, h(\boldsymbol{a}_i, \xx)) \defas \log(1 + \exp(-\boldsymbol{b}_i h(\boldsymbol{a}_i, \xx)))$
+\end{itemize}
+}
+
+\note{
+The kind of parallelization will depend on the problem.
+The kind of problem that we will be interested in
+The problem: supervised learning.
+}
+
+
+\end{frame}
+
+
+
+
 \begin{frame}[noframenumbering, allowframebreaks]
 \nocite{pedregosa2017proxasaga}
   % \frametitle{References}
