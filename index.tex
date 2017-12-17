@@ -5,7 +5,7 @@
 \usepackage{color, xcolor}
 \usepackage{dsfont}
 \definecolor{mydarkblue}{rgb}{0,0.08,0.45}
-
+\usepackage{wrapfig}
 
 \usepackage{booktabs}
 \usepackage[scale=2]{ccicons}
@@ -103,7 +103,7 @@
 \end{column}
 \begin{column}{0.6\textwidth}  %%<--- here
 \begin{itemize}
-\item Engineer (2010-2012), Inria Saclay.
+\item Engineer (2010-2012), Inria Saclay (scikit-learn kickstart).
 \item PhD (2012-2015, Inria Saclay)
 \item Postdoc (2015-2016), Dauphine--ENS--Inria Paris.
 \item Postdoc (2017-present), UC Berkeley - ETH Zurich (Marie-Curie fellowship, European Commission)
@@ -173,7 +173,7 @@ Gordon Moore (Intel), 1975 [paraphrased]
 
 
 \begin{frame}{Parallel optimization}
-Parallel algorithms can be divided  large categories: 
+Parallel algorithms can be divided  into two large categories: 
 {\bfseries synchronous} and {\bfseries asynchronous}.
 
 \begin{figure}
@@ -215,15 +215,11 @@ Parallel algorithms can be divided  large categories:
 
 
 \begin{frame}{Outline}
-\vspace{2em}\begin{columns}[T] % align columns
-\begin{column}{.4\textwidth}
+
 {\centering \bfseries Synchronous methods}
 \begin{itemize}
 \item Synchronous (stochastic) gradient descent.
 \end{itemize}
-\end{column}%
-\hfill%
-\begin{column}{.6\textwidth}
 {\centering \bfseries Asynchronous methods}
 \begin{itemize}
 \item Asynchronous SGD (Hogwild)~\parencite{hogwild2011}
@@ -231,17 +227,17 @@ Parallel algorithms can be divided  large categories:
 \item Analysis of asynchronous methods. 
 \item Codes and implementation aspects.
 \end{itemize}
-\end{column}%
-\end{columns}
-\vspace{1em}
 
 Leaving out many parallel synchronous methods: ADMM~\parencite{glowinski1975approximation}, CoCoA~\parencite{NIPS2014_5599}, DANE~\parencite{shamir2014communication}, to name a few.
 
 \end{frame}
 
+\begin{frame}{Outline}
+Most of this is joint work with Remi Leblond and Simon Lacoste-Julien
+\end{frame}
 
 
-
+\section{Synchronous algorithms}
 
 \begin{frame}{Optimization for machine learning}
 Large part of problems in machine learning can be framed as optimization problems of the form
@@ -250,8 +246,6 @@ $$\minimize_x f(x) \defas \displaystyle\frac{1}{n}\sum^{n}_{i=1} f_i(x)$$
 \begin{column}{0.6\textwidth}  %%<--- here
 {\bfseries Gradient descent} \parencite{cauchy1847methode}. Descend along steepest direction ($-\nabla f(x)$)
 $$x^+ = x - \gamma \nabla f(x)$$
-
-
 
 {\bfseries Stochastic gradient descent} (SGD) \parencite{robbins1951sgd}. Select a random index $i$ and descent along $~\nabla f_i(x)$:
 $$x^+ = x - \gamma \nabla f_i(x)$$
@@ -262,7 +256,7 @@ $$x^+ = x - \gamma \nabla f_i(x)$$
 
 \vspace{2em}
 \includegraphics[width=\linewidth]{img/sgd}
-\begin{flushright}{\footnotesize images source: Francis Bach}\end{flushright}
+\vspace*{-2.5em}\begin{flushright}{\footnotesize images source: Francis Bach}\end{flushright}
 \end{column}
 \end{columns}
 \end{frame}
@@ -281,23 +275,105 @@ Bottleneck in gradient descent $=$ compute $\nabla f(\xx)$.
 \nabla f(\xx) &= \frac{1}{n} \sum_{i=1} \nabla f_i(\xx)\\ \pause
 &= X
 \end{align*}
-
+\begin{center}
+{\centering\includegraphics[width=0.5\linewidth]{img/mapreduce}}
+\end{center}
 \end{frame}
 
-\begin{frame}{XX}
-This can also be extended to minibatch gradient descent.
+\begin{frame}{Parallel SGD}
+This can also be extended to stochastic gradient descent.
 
 Instead of choosing one sample, choose a subset of $k$ samples, and compute their gradient in parallel.
 
-This is the parallelization implemented in most software: Hadoop, Tensorflow, PyTorch, etc.
+\begin{wrapfigure}{r}{0.3\textwidth} 
+\includegraphics[width=\linewidth]{img/gpu}
+\end{wrapfigure}
+This is the parallelization implemented in deep learning software: Tensorflow, PyTorch, etc.
 \end{frame}
 
-\begin{frame}{XX}
-Asynchronous
+\section{Asynchronous algorithms}
+
+\begin{frame}{Asynchronous SGD}
+
+\begin{columns}
+\begin{column}{0.5\textwidth}  %%<--- here
+Synchronization is the bottleneck. \\
+
+\vspace{1em}{\bfseries Idea:} What if we just ignore it?
+\end{column}
+\begin{column}{0.5\textwidth}  %%<--- here
+\begin{center}
+\includegraphics[width=\linewidth]{img/synchronization}
+\end{center}
+\end{column}
+\end{columns}
+
+Hogwild~\parencite{hogwild2011}: each core runs SGD in parallel, without synchronization, and updates the same vector of coefficients.
+
+{\bfseries In theory}: convergence under very strong assumptions.
+
+{\bfseries In practice}: just works.
+
 \end{frame}
 
-\begin{frame}{XX}
-XX
+\begin{frame}{Hogwild in more detail}
+
+
+Each core follows the same procedure
+\begin{enumerate}
+\item Read the information from shared memory $\hat{\xx}$
+\item Sample $i \in \{1, \ldots, n\}$
+\item Compute partial gradient $\nabla f_i(\hat{\xx})$
+\item Write the SGD update to shared memory $\xx = \xx - \gamma \nabla f_i(\hat{\xx})$
+\end{enumerate}
+\pause
+\includegraphics[width=0.6\linewidth]{img/async_updates}
+
+\end{frame}
+
+
+\begin{frame}{Hogwild}
+
+Very popular method.
+
+
+
+Hard to analyze
+
+Large gap between theory and practice.
+\end{frame}
+
+\begin{frame}{Analysis of asynchronous methods}
+
+Things become unpredictable in presence of asynchrony.
+
+
+{\bfseries How to name the iterates?}
+
+\begin{figure}
+\vspace{-0.5em}\includegraphics[width=0.8\linewidth]{img/sync_vs_async}
+\vspace{-0.5em}\end{figure}
+
+\note{
+
+Many of the things we are used to in classical optimization just break down in the presence of asynchrony. Suddenly, we need to start worrying for things that we used to give for granted. One these things is how to name things. It sounds silly but its true,  
+
+}
+\end{frame}
+
+
+\begin{frame}{Naming scheme in Hogiwild}
+
+{\bfseries Simple, intuitive and wrong}
+
+the $t$-th iterate is the $t$-th time that any core has finished writing his update to shared memory. 
+
+Existing analysis of Hogwild is wrong
+
+Relies on unbiased estimate of the gradient
+
+
+To break dependency we 
 \end{frame}
 
 \begin{frame}{XX}
