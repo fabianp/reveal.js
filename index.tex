@@ -9,6 +9,7 @@
 
 \usepackage{booktabs}
 \usepackage[scale=2]{ccicons}
+\usepackage[beamer]{hf-tikz}
 
 
 \usepackage{adjustbox} 
@@ -233,7 +234,7 @@ Leaving out many parallel synchronous methods: ADMM~\parencite{glowinski1975appr
 \end{frame}
 
 \begin{frame}{Outline}
-Most of this is joint work with Remi Leblond and Simon Lacoste-Julien
+Most of the following is joint work with Rémi Leblond and Simon Lacoste-Julien
 
 {
 % \hspace{1.8em}\includegraphics[width=0.2\linewidth]{img/fabian}
@@ -251,8 +252,13 @@ Most of this is joint work with Remi Leblond and Simon Lacoste-Julien
 
 \end{frame}
 
-
+{\usebackgroundtemplate{%
+\begin{picture}(40,280)
+  \includegraphics[height=1\paperheight]{img/sync_bg}
+  \end{picture}
+  }
 \section{Synchronous algorithms}
+}
 
 \begin{frame}{Optimization for machine learning}
 Large part of problems in machine learning can be framed as optimization problems of the form
@@ -341,20 +347,20 @@ $$
 \end{frame}
 
 {\usebackgroundtemplate{%
-\begin{picture}(40,260)
+\begin{picture}(20,320)
   \includegraphics[height=1\paperheight]{img/async_bg}
   \end{picture}
   }
-\section{\color{mDarkTeal} Asynchronous algorithms}
+\section{ \color{mDarkTeal} Asynchronous algorithms}
 }
 
-\begin{frame}{\color{Asynchronous SGD}
+\begin{frame}{Asynchronous SGD}
 
 \begin{columns}
 \begin{column}{0.5\textwidth}  %%<--- here
 Synchronization is the bottleneck. \\
 
-\vspace{1em}{\bfseries Idea:} What if we just ignore it?
+\vspace{1em}{\Large\faLightbulbO~}What if we just ignore it?
 \end{column}
 \begin{column}{0.5\textwidth}  %%<--- here
 \begin{center}
@@ -401,6 +407,8 @@ But its still SGD...
 \item With constant step size, bounces around the optimum.
 
 \item With decreasing step size, slow convergence.
+
+\item There are better alternatives (Emilie mentioned some)
 \end{itemize}
 \end{frame}
 
@@ -447,9 +455,10 @@ $\implies$ $\hat{\xx}_t$ and $i_t$  are not necessarily independent.
 \end{frame}
 
 \begin{frame}{Unbiased gradient estimate}
-SGD-like algorithms crucially rely on the property that update is unbiased estimate of the gradient, i.e., $\mathbb{E}_i[\nabla f_i(\xx)] = \nabla f(\xx)$.
+SGD-like algorithms crucially rely on the unbiased property $\mathbb{E}_i[\nabla f_i(\xx)] = \nabla f(\xx)$.
 
-For synchronous algorithms, this follows from the uniform sampling of $i$ 
+\vspace{1em}
+For synchronous algorithms, follows from the uniform sampling of $i$ 
 \begin{align*}
 \mathbb{E}_i[\nabla f_i(\xx)] &= \sum_{i=1}^n \text{Proba}(\text{selecting}~i) \nabla f_i(\xx)\\
  &\stackrel{\text{uniform sampling}}{=} \sum_{i=1}^n \frac{1}{n} \nabla f_i(\xx) = \nabla f(\xx)
@@ -463,6 +472,7 @@ Selecting $i$ uniformly at random is not enough.
 \pause
 {\bfseries Illustration}: problem with two samples and two cores $f = \frac{1}{2}(f_1 + f_2)$. Computing $\nabla f_1$ is much expensive than $\nabla f_2$.
 
+\pause 
 Start at $\xx_0$. Because of the random sampling there are 4 possible scenarios:
 \begin{enumerate}
 \item Core 1 selects $f_1$, Core 2 selects $f_1$ $\implies$ $\xx_1 = \xx_0 - \nabla f_1(\xx)$
@@ -497,8 +507,10 @@ So we have
 ``After read'' labeling~\parencite{leblond2016Asaga}. Increment counter each time we \emph{read} the vector of coefficients from shared memory.
 
 \pause
+\vspace{1em}
 {\Large \faCheck}~No dependency between $i_t$ and the cost of computing $\nabla f_{i_t}$.
 
+\vspace{1em}
 {\Large \faCheck}~Full analysis of Hogwild and other asynchronous methods in \emph{``Improved parallel stochastic optimization analysis for
 incremental methods'', Leblond, P., and Lacoste-Julien} (submitted).
 \end{frame}
@@ -510,6 +522,9 @@ Analysis inspired by the perturbed iterate framework of \parencite{mania2015pert
 \item $\xx_{t+1} \defas \xx_{t} - \gamma \nabla f_i(\hat{\xx}_t)$
 \end{itemize}
 
+Analysis is carried out in $\xx_{t+1}$.
+
+Relate $\xx_t$ to $\hat{\xx}_t$.
 \end{frame}
 
 \section{Asynchronous SAGA}
@@ -534,7 +549,19 @@ Unlike SGD, stores previous gradients ($\balpha$).
 \end{frame}
 
 
-\begin{frame}{X}
+\begin{frame}{Sparse SAGA}
+
+A large part of large scale datasets are sparse.
+
+\vspace{1em}
+For sparse datasets and generalized linear models (e.g., least squares, logistic regression, etc.), partial gradients $\nabla f_i$ are sparse too.
+
+\vspace{1em}
+SAGA update is inefficient
+$$
+\xx^+ = \xx - \gamma (\underbrace{\nabla f(\xx)}_{\text{sparse}} - \underbrace{\balpha_i}_{\text{sparse}} + \underbrace{\overline{\balpha}}_{\color{red}\text{dense!}})\,;~\balpha_i^+ = \nabla f_i(\xx)
+$$
+
 \end{frame}
 
 \section{Asynchronous Proximal SAGA}
@@ -543,11 +570,6 @@ Unlike SGD, stores previous gradients ($\balpha$).
 
 \begin{frame}{Composite objective}
 
-\faExclamationTriangle~These methods assume objective function is smooth
-
-Cannot be applied to Lasso, Group Lasso, box constraints, etc.
-
-\pause 
 \vspace{5mm}
 {\bfseries Objective}: minimize composite objective function:
 $$
@@ -558,36 +580,36 @@ where $f_i$ is smooth and $h$ is a block-separable (i.e., $h(\boldsymbol{x}) = \
 
 
 
-% \begin{frame}{Sparse Proximal SAGA}
-% 
+\begin{frame}{Sparse Proximal SAGA}
+
 % {\bfseries Contribution 1: Sparse Proximal SAGA.} Variant of SAGA \parencite{defazio2014saga}, particularly efficient when $\nabla f_i$ are sparse.
-% % \vspace{0.5em}\begin{equation*}\tag{SAGA}
-% % \xx^+ = \prox_{\gamma h}(\xx - \gamma (\nabla f_i(\xx) - \balpha_i + \overline{\balpha}))\,;~\balpha_i^+ = \nabla f_i(\xx)~.
-% % \end{equation*}
-% 
-% % \begin{align}
-% %     \vphantom{\sum}\vv_i &= \nabla f_i(\xx) - \balpha_i + \tikzmarkin<2>{a}\DD_i\tikzmarkend{a} \overline{\balpha}\,\\
-% %     \vphantom{\sum}\xx^+ &= \prox_{\gamma \varphi_i}\big(\xx - \gamma \vv_i \big)\,;~
-% %     \balpha_i^+ = \nabla f_i(\xx)
-% % \end{align}
-% 
+% \vspace{0.5em}\begin{equation*}\tag{SAGA}
+% \xx^+ = \prox_{\gamma h}(\xx - \gamma (\nabla f_i(\xx) - \balpha_i + \overline{\balpha}))\,;~\balpha_i^+ = \nabla f_i(\xx)~.
+% \end{equation*}
+
+% \begin{align}
+%     \vphantom{\sum}\vv_i &= \nabla f_i(\xx) - \balpha_i + \tikzmarkin<2>{a}\DD_i\tikzmarkend{a} \overline{\balpha}\,\\
+%     \vphantom{\sum}\xx^+ &= \prox_{\gamma \varphi_i}\big(\xx - \gamma \vv_i \big)\,;~
+%     \balpha_i^+ = \nabla f_i(\xx)
+% \end{align}
+
 % \onslide<2->{Like SAGA, it relies on \rnode{a}{unbiased gradient} estimate} \onslide<3->{ and \rnode{b}{proximal step}}
-% 
-% % \[
-% % \onslide<2->{
-% %       \vv_i \rnode[t]{ae}{=} \nabla f_i(\xx) - \balpha_i + \DD_i \overline{\balpha}\,; }
-% % \onslide<3->{%
-% %   ~\xx^+ = \rnode[t]{be}{\prox}_{\gamma \varphi_i}(\xx - \gamma \vv_i)\,;~\balpha_i^+ = \nabla f_i(\xx)}
-% % \] 
-% %  \onslide<2->{\nccurve[angleA=-90,angleB=90, linecolor=gray]{->}{a}{ae}}
-% %  \onslide<3->{\nccurve[angleA=-90, angleB=90, linecolor=gray]{->}{b}{be}}
-%  
+
+% \[
+% \onslide<2->{
+%       \vv_i \rnode[t]{ae}{=} \nabla f_i(\xx) - \balpha_i + \DD_i \overline{\balpha}\,; }
+% \onslide<3->{%
+%   ~\xx^+ = \rnode[t]{be}{\prox}_{\gamma \varphi_i}(\xx - \gamma \vv_i)\,;~\balpha_i^+ = \nabla f_i(\xx)}
+% \] 
+%  \onslide<2->{\nccurve[angleA=-90,angleB=90, linecolor=gray]{->}{a}{ae}}
+%  \onslide<3->{\nccurve[angleA=-90, angleB=90, linecolor=gray]{->}{b}{be}}
+ 
 %  \onslide<4->{
 %  {Unlike SAGA}, and $\varphi_i$ are designed to give sparse updates while verifying unbiasedness conditions.}
 %  
 % \onslide<5->{ {\bfseries Convergence:} same linear convergence rate as SAGA, with cheaper updates in presence of sparsity. 
 %  }
-% \end{frame}
+\end{frame}
 
 
 \begin{frame}{Proximal Asynchronous SAGA (ProxASAGA)}
