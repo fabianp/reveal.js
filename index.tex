@@ -11,6 +11,7 @@
 \usepackage[scale=2]{ccicons}
 \usepackage[beamer]{hf-tikz}
 
+\usepackage{minted}
 
 \usepackage{adjustbox} 
 \usepackage{pgfplots}
@@ -545,9 +546,21 @@ $$
 $$
 Unlike SGD, stores previous gradients ($\balpha$).
 \vspace{1em}\pause
-{\bfseries Motivation}: Can we derive an asynchronous parallel variant of this algorithm?
+
+\metroset{block=fill}
+\begin{alertblock}{Super easy to use in scikit-learn}
+\begin{minted}{python}
+from sklearn.linear_model import LogisticRegression
+clf = L
+\end{minted}
+\end{alertblock}
 \end{frame}
 
+
+\begin{frame}{XXX}
+{\bfseries Motivation}: Can we derive an asynchronous parallel variant of this algorithm?
+
+\end{frame}
 
 \begin{frame}{Sparse SAGA}
 
