@@ -17,6 +17,15 @@
 \usepgfplotslibrary{dateplot}
 \usepackage{fourier-orns}
 \usepackage{xspace}
+\usepackage{pst-node}
+\newrgbcolor{lila}{0.6 0.2 0.5}
+\newrgbcolor{darkyellow}{1 0.9 0}
+
+
+% For algorithms
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
 
 \usepackage[scale=2]{ccicons}
 \usepackage{fontawesome}
@@ -28,7 +37,7 @@
 \let\oldcite=\cite                                                              
 \renewcommand{\cite}[1]{\textcolor[rgb]{.7,.7,.7}{\oldcite{#1}}}
 \let\oldparencite=\parencite                                                         
-\renewcommand{\parencite}[1]{\textcolor[rgb]{.7,.7,.7}{\oldparencite{#1}}}
+\renewcommand{\parencite}[1]{\textcolor[rgb]{1.,.9,.9}{\oldparencite{#1}}}
 
 
 \newcommand{\themename}{\textbf{\textsc{metropolis}}\xspace}
@@ -133,7 +142,11 @@
 \end{columns}
 What has changed?
 \pause
-2006 = no longer mentions to speed of processors
+
+2006 = no longer mentions to speed of processors.
+
+\pause
+Primary feature: number of cores.
 \end{frame}
 
 
@@ -155,10 +168,11 @@ Gordon Moore (Intel), 1975 [paraphrased]
 
 
 \begin{frame}{40 years of CPU trends}
+\vspace{1em}
 \centering\includegraphics[width=0.8\linewidth]{img/moore_law}
 
 \begin{itemize}[<+->]
-\item Speed of CPUs has stagnated since 2005;
+\item Speed of CPUs has stagnated since 2005.
 \item Multi-core architectures are here to stay.
 \end{itemize}
 \pause {\bfseries Parallel algorithms needed to take advantage of modern CPUs.}
@@ -326,6 +340,7 @@ $$
 \end{enumerate}
 \pause
 \faCheck~Trivial parallelization, same analysis as gradient descent.
+
 \faClose~Synchronization step every iteration (3.).
 \end{frame}
 
@@ -493,7 +508,7 @@ So we have
   \includegraphics[height=1\paperheight]{img/dali}
   \end{picture}
   }
-\section{The Art of {Naming \color{mDarkTeal} Things}}
+\section{~The Art of {Naming \color{mDarkTeal} Things}}
 }
 
 % So that doesn't help much
@@ -519,12 +534,11 @@ incremental methods'', Leblond, P., and Lacoste-Julien} (submitted).
 Analysis inspired by the perturbed iterate framework of \parencite{mania2015perturbed}. Distinguishes two quantities:
 \begin{itemize}
 \item $\hat{\xx}_t =$ $(t+1)$-th fully completed read from shared memory. 
-\item $\xx_{t+1} \defas \xx_{t} - \gamma \nabla f_i(\hat{\xx}_t)$
+\item $\xx_{t+1} \defas \xx_{t} - \gamma g(\hat{\xx}_t)$ ``virtual'' iterate, its a definition and does not need to exist in memory (for SGD $g = \nabla f_i$).
 \end{itemize}
 
-Analysis is carried out in $\xx_{t+1}$.
-
-Relate $\xx_t$ to $\hat{\xx}_t$.
+Analysis is carried out in $\xx_{t+1}$. Finally,
+relate $\xx_t$ to $\hat{\xx}_t$.
 \end{frame}
 
 \section{Asynchronous SAGA}
@@ -541,9 +555,13 @@ The {\bfseries SAGA} algorithm~\parencite{defazio2014saga}.
 
 Select $i \in \{1, \ldots, n\}$ and compute $(\xx^+, \balpha^+)$ as
 $$
-\xx^+ = \xx - \gamma (\nabla f(\xx) - \balpha_i + \overline{\balpha})\,;~\balpha_i^+ = \nabla f_i(\xx)
+\xx^+ = \xx - \gamma (\nabla f_i(\xx) - \balpha_i + \overline{\balpha})\,;~\balpha_i^+ = \nabla f_i(\xx)
 $$
-Unlike SGD, stores previous gradients ($\balpha$).
+\begin{itemize}
+\item Like SGD, update is unbiased, i.e., $\mathbb{E}_i[\nabla f_i(\xx) - \balpha_i + \overline{\balpha})] = \nabla f(\xx)$.
+
+\item Unlike SGD, because of memory terms $\balpha$, variance $\rightarrow$ 0.
+\end{itemize}
 \vspace{1em}\pause
 
 \metroset{block=fill}
@@ -557,14 +575,9 @@ Unlike SGD, stores previous gradients ($\balpha$).
 \end{frame}
 
 
-\begin{frame}{Asynchronous SAGA}
-Can we derive an asynchronous parallel variant of SAGA?
-
-\end{frame}
-
 \begin{frame}{Sparse SAGA}
 
-{\bfseries Need for a sparse varinat of SAGA}
+{\bfseries Need for a sparse variant of SAGA}
 \begin{itemize}
 \item A large part of large scale datasets are sparse.
 \item For sparse datasets and generalized linear models (e.g., least squares, logistic regression, etc.), partial gradients $\nabla f_i$ are sparse too.
@@ -574,16 +587,90 @@ Can we derive an asynchronous parallel variant of SAGA?
 \vspace{1em}
 SAGA update is inefficient
 $$
-\xx^+ = \xx - \gamma (\underbrace{\nabla f(\xx)}_{\text{sparse}} - \underbrace{\balpha_i}_{\text{sparse}} + \underbrace{\overline{\balpha}}_{\color{red}\text{dense!}})\,;~\balpha_i^+ = \nabla f_i(\xx)
+\xx^+ = \xx - \gamma (\underbrace{\nabla f_i(\xx)}_{\text{sparse}} - \underbrace{\balpha_i}_{\text{sparse}} + \underbrace{\overline{\balpha}}_{\color{orange}\text{dense!}})\,;~\balpha_i^+ = \nabla f_i(\xx)
 $$
+[many tricks are used in in scikit-learn that we cannot use in asynchronous version]
 
 \end{frame}
 
-\section{Asynchronous Proximal SAGA}
+
+
+\begin{frame}{Sparse SAGA}
+Sparse variant of SAGA. Relies on
+
+\begin{itemize}
+\item Diagonal matrix $\boldsymbol{P}_i = $ projection onto the support of $\nabla f_i$
+\item Diagonal matrix $D$ defined as $D_{j, j} = 1 / \text{number of times $\nabla_j f_i$ is nonzero}$.
+\end{itemize}
+
+\metroset{block=fill}
+\begin{alertblock}{Sparse SAGA algorithm~\parencite{leblond2016Asaga}}
+$$
+\xx^+ = \xx - \gamma (\nabla f_i(\xx) - \balpha_i + \boldsymbol{P}_i \boldsymbol{D}\overline{\balpha})\,;~\balpha_i^+ = \nabla f_i(\xx)
+$$
+\end{alertblock}
+
+\begin{itemize}
+\item All operations are sparse, cost per iteration is $\mathcal{O}(\text{nonzeros in $\nabla f_i$})$.
+\item Same convergence properties than SAGA, but with cheaper iterations in presence of sparsity.
+\item Crucial insight: $\mathbb{E}_i[\boldsymbol{P}_i \boldsymbol{D}] = \boldsymbol{I}$.
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}{Asynchronous SAGA (ASAGA)}
+
+\begin{itemize}
+\item Each core runs an instance of Sparse SAGA.
+
+\item Updates the same vector of coefficients $\balpha, \overline{\balpha}$.
+\end{itemize}
+
+
+{\bfseries Theory:} Under standard assumptions (bounded dalays), same convergence than SAGA
+% \begin{algorithm}[H]
+%   \begin{algorithmic}[1]
+%   \STATE Initialize shared variables $x$ and $(\alpha_i)_{i=1}^n$
+%   % \LOOP
+% %      \STATE $\hat x = $ inconsistent read of $x$
+% %    \STATE $\forall j$, $\hat \alpha_j = $ inconsistent read of $\alpha_j$
+% %      \STATE \textcolor{blue}{Sample $i$}  uniformly in $\{1,...,n\}$
+% %      \STATE Let $S_i$ be $f_i$'s support
+% %      \STATE $[\bar \alpha]_{S_i} = \nicefrac{1}{n} \sum_{k=1}^n [\hat \alpha_k]_{S_i}$
+% %      \STATE
+% %      \STATE $[\delta x]_{S_i} = -\stepsize (f'_i(\hat x) - \hat \alpha_i + D_{i} [\bar \alpha]_{S_i})$
+% %          \FOR{$v$ {\bfseries in} $S_i$}
+% %           \STATE $[x]_v \leftarrow [x]_v + [\delta x]_v$      \hfill // atomic
+% %         \STATE $[\alpha_i]_v \leftarrow [f'_i( \hat x )]_v$
+% %         \STATE  // {\small `$\gets$' denotes a shared memory update.}
+% %        \ENDFOR
+%   % \ENDLOOP
+%  \end{algorithmic}
+%  \end{algorithm}
+
+\end{frame}
+
+\begin{frame}{Experiments}
+\includegraphics[width=\linewidth]{img/results_asaga}
+% \includegraphics[width=0.5\linewidth]{img/asaga_speedup}
+
+\begin{itemize}
+\end{itemize}
+
+\end{frame}
+
+
+\section{Extension to non-smooth optimization}
 
 
 
 \begin{frame}{Composite objective}
+
+Previous methods assume objective function is smooth.
+
+Cannot be applied to Lasso, Group Lasso, box constraints, etc.
+
 
 \vspace{5mm}
 {\bfseries Objective}: minimize composite objective function:
@@ -591,45 +678,49 @@ $$
 \minimize_{\xx} f(\xx) + h(\xx)~,~ \text{ with $f(x) = \textstyle \frac{1}{n}\sum_{i=1}^n f_i(\xx)$}
 $$
 where $f_i$ is smooth and $h$ is a block-separable (i.e., $h(\boldsymbol{x}) = \sum_{B} h([\boldsymbol{x}]_B)$) convex function for which we have access to its proximal operator.
+
+
+XXX The SAGA algorithm of Defazio
 \end{frame}
 
 
 
 \begin{frame}{Sparse Proximal SAGA}
 
-% {\bfseries Contribution 1: Sparse Proximal SAGA.} Variant of SAGA \parencite{defazio2014saga}, particularly efficient when $\nabla f_i$ are sparse.
+{\bfseries Sparse Proximal SAGA.}~\parencite{pedregosa2017proxasaga} Extension of Sparse SAGA to composite optimization problems
 % \vspace{0.5em}\begin{equation*}\tag{SAGA}
 % \xx^+ = \prox_{\gamma h}(\xx - \gamma (\nabla f_i(\xx) - \balpha_i + \overline{\balpha}))\,;~\balpha_i^+ = \nabla f_i(\xx)~.
 % \end{equation*}
-
+% 
 % \begin{align}
 %     \vphantom{\sum}\vv_i &= \nabla f_i(\xx) - \balpha_i + \tikzmarkin<2>{a}\DD_i\tikzmarkend{a} \overline{\balpha}\,\\
 %     \vphantom{\sum}\xx^+ &= \prox_{\gamma \varphi_i}\big(\xx - \gamma \vv_i \big)\,;~
 %     \balpha_i^+ = \nabla f_i(\xx)
 % \end{align}
 
-% \onslide<2->{Like SAGA, it relies on \rnode{a}{unbiased gradient} estimate} \onslide<3->{ and \rnode{b}{proximal step}}
+\onslide<2->{Like SAGA, it relies on \rnode{a}{unbiased gradient} estimate} \onslide<3->{ and \rnode{b}{proximal step}}
 
-% \[
-% \onslide<2->{
-%       \vv_i \rnode[t]{ae}{=} \nabla f_i(\xx) - \balpha_i + \DD_i \overline{\balpha}\,; }
-% \onslide<3->{%
-%   ~\xx^+ = \rnode[t]{be}{\prox}_{\gamma \varphi_i}(\xx - \gamma \vv_i)\,;~\balpha_i^+ = \nabla f_i(\xx)}
-% \] 
-%  \onslide<2->{\nccurve[angleA=-90,angleB=90, linecolor=gray]{->}{a}{ae}}
-%  \onslide<3->{\nccurve[angleA=-90, angleB=90, linecolor=gray]{->}{b}{be}}
+\[
+\onslide<2->{
+      \vv_i \rnode[t]{ae}{=} \nabla f_i(\xx) - \balpha_i + \boldsymbol{D}_i \overline{\balpha}\,; }
+\onslide<3->{%
+  ~\xx^+ = \rnode[t]{be}{\prox}_{\gamma \varphi_i}(\xx - \gamma \vv_i)\,;~\balpha_i^+ = \nabla f_i(\xx)}
+\] 
+
+ \onslide<2->{\nccurve[angleA=-90,angleB=90, linecolor=gray]{->}{a}{ae}}
+ \onslide<3->{\nccurve[angleA=-90, angleB=90, linecolor=gray]{->}{b}{be}}
  
-%  \onslide<4->{
-%  {Unlike SAGA}, and $\varphi_i$ are designed to give sparse updates while verifying unbiasedness conditions.}
-%  
-% \onslide<5->{ {\bfseries Convergence:} same linear convergence rate as SAGA, with cheaper updates in presence of sparsity. 
-%  }
+ \onslide<4->{
+ {Unlike SAGA}, and $\varphi_i$ are designed to give sparse updates while verifying unbiasedness conditions.}
+ 
+\onslide<5->{ {\bfseries Convergence:} same linear convergence rate as SAGA, with cheaper updates in presence of sparsity. 
+ }
 \end{frame}
 
 
 \begin{frame}{Proximal Asynchronous SAGA (ProxASAGA)}
 
-{\bfseries Contribution 2: Proximal Asynchronous SAGA (ProxASAGA).} Each core
+Each core
  runs Sparse Proximal SAGA asynchronously without locks and updates $\xx$, $\balpha$ and $\overline{\balpha}$ in shared memory.
 
 \vspace{0.5em} \faRandom~All read/write operations to shared memory are \emph{inconsistent}, i.e., no performance destroying vector-level locks while reading/writing.
@@ -703,6 +794,18 @@ $$
 A very efficient implementation of SAGA can be found in scikit-learn
 \end{frame}
 
+
+
+
+
+\begin{frame}[noframenumbering, allowframebreaks]
+\nocite{pedregosa2017proxasaga}
+  % \frametitle{References}
+  \printbibliography
+ \end{frame}
+
+
+\appendix
 
 
 \begin{frame}{Supervised Machine Learning}
@@ -784,13 +887,26 @@ The problem: supervised learning.
 
 \end{frame}
 
+\begin{frame}{Sparse Proximal SAGA}
+For step size $\gamma = \frac{1}{5L}$ and $f$ $\mu$-strongly convex ($\mu > 0$), Sparse Proximal SAGA converges geometrically in expectation. At iteration $t$ we have
+\vspace{0.5em}$$
+\mathbb{E} \|\xx_t - \xx^*\|^2 \leq (1-\textstyle\frac{1}{5} \min\{\frac{1}{n}, \frac{1}{\kappa}\})^t\, C_0~,
+$$
 
+\vspace{1em}with $C_0 = \|\xx_0 - \xx^*\|^2 + \textstyle\frac{1}{5 L^2} \textstyle\sum_{i=1}^n\|{\boldsymbol\alpha}_i^0 - \nabla f_i(\xx^*)\|^2$ and $
+\kappa = \frac{L}{\mu}$ (condition number).
 
-
-\begin{frame}[noframenumbering, allowframebreaks]
-\nocite{pedregosa2017proxasaga}
-  % \frametitle{References}
-  \printbibliography
- \end{frame}
+\vspace{1.5em} {\bfseries Implications}
+\begin{itemize}\setlength\itemsep{0.5em}
+\vspace{0.5em}\item Same convergence rate than SAGA with cheaper updates.
+\begin{itemize}
+\vspace{0.3em}\item {\normalsize In the ``big data regime'' ($n \geq \kappa$):  rate in $\mathcal{O}(1/n)$}.
+\vspace{0.3em}\item {\normalsize In the ``ill-conditioned regime'' ($n \leq \kappa$):  rate in $\mathcal{O}(1/\kappa)$}.
+\end{itemize}
+\item Adaptivity to strong convexity, i.e., no need to know strong convexity parameter to obtain linear convergence.
+% \item Same convergence rate than SAGA:
+\end{itemize}
+\vspace{1.3em}
+\end{frame}
 
 \end{document}
