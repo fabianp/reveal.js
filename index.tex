@@ -292,7 +292,7 @@ Computation of gradient is distributed among $k$ workers
 \begin{itemize}
 \item Workers can be: different computers, CPUs or GPUs
 
-\item Popular frameworks: Spark, Hadoop.
+\item Popular frameworks: Spark, Tensorflow, PyTorch, neHadoop.
 \end{itemize}
 \end{column}
 \begin{column}{0.3\textwidth}  %%<--- here
@@ -310,7 +310,7 @@ Computation of gradient is distributed among $k$ workers
 \item Choose $n_1, \ldots n_k$ that sum to $n$.
 \item Distribute computation of $\nabla f(\xx)$ among $k$ nodes
 \begin{align*}
-\nabla f(\xx) &= \frac{1}{n} \sum_{i=1} \nabla f_i(\xx)\\ &= \frac{1}{k} \large(\underbrace{\frac{1}{n_1}\sum_{i=1}^{n_1} \nabla f_i(\xx)}_{\text{compute this in worker 1}} + \ldots + \underbrace{\frac{1}{n_1}\sum_{i=n_{k-1}}^{n_k} \nabla f_i(\xx)}_{\text{compute this in worker $k$}} \large)
+\nabla f(\xx) &= \frac{1}{n} \sum_{i=1} \nabla f_i(\xx)\\ &= \frac{1}{k} \large(\underbrace{\frac{1}{n_1}\sum_{i=1}^{n_1} \nabla f_i(\xx)}_{\text{done by worker 1}} + \ldots + \underbrace{\frac{1}{n_1}\sum_{i=n_{k-1}}^{n_k} \nabla f_i(\xx)}_{\text{done by worker $k$}} \large)
 \end{align*}
 % {\centering\includegraphics[width=0.5\linewidth]{img/mapredu
 \item Perform the gradient descent update by a master node
@@ -340,9 +340,15 @@ $$
 % This is the parallelization implemented in deep learning software: Tensorflow, PyTorch, etc.
 \end{frame}
 
-\section{Asynchronous algorithms}
+{\usebackgroundtemplate{%
+\begin{picture}(40,260)
+  \includegraphics[height=1\paperheight]{img/async_bg}
+  \end{picture}
+  }
+\section{\color{mDarkTeal} Asynchronous algorithms}
+}
 
-\begin{frame}{Asynchronous SGD}
+\begin{frame}{\color{Asynchronous SGD}
 
 \begin{columns}
 \begin{column}{0.5\textwidth}  %%<--- here
@@ -399,18 +405,23 @@ But its still SGD...
 \end{frame}
 
 % if you want some excitement ...
-\section{(A glipse into the) Analysis of asynchronous methods}
+{\usebackgroundtemplate{%
+\begin{picture}(40,260)
+  \includegraphics[height=1\paperheight]{img/bungee}
+  \end{picture}
+  }
+\section{Looking for excitement? ... analyze asynchronous methods!}
+}
 
 \begin{frame}{Analysis of asynchronous methods}
 
-Things become unpredictable in presence of asynchrony.
-
-
-{\bfseries How to name the iterates?}
+Simple things become counter-intuitive, e.g, how to {\bfseries name} the iterates?
 
 \begin{figure}
 \vspace{-0.5em}\includegraphics[width=0.8\linewidth]{img/sync_vs_async}
 \vspace{-0.5em}\end{figure}
+
+\vspace{1em}{\Large \faWarning}~Iterates will change depending on the speed of processors
 
 \note{
 
@@ -429,7 +440,7 @@ Each time a core has finished writing to shared memory, increment iteration coun
 
 $\iff$ $\hat{\xx}_t = (t+1)$-th succesfull update.
 
-\vspace{1em}\faWarning~In this framework, the value of $\hat{\xx}_t$ and $i_t$ are not determined until the iteration has finished.
+Value of $\hat{\xx}_t$ and $i_t$ are not determined until the iteration has finished.
 
 $\implies$ $\hat{\xx}_t$ and $i_t$  are not necessarily independent.
 
@@ -466,18 +477,29 @@ So we have
 \end{align*}
 \end{frame}
 
-\section{The Art of Naming Things}
 
-\begin{frame}{The art of naming things}
+{\usebackgroundtemplate{%
+\begin{picture}(40,260)
+  \includegraphics[height=1\paperheight]{img/dali}
+  \end{picture}
+  }
+\section{The Art of {Naming \color{mDarkTeal} Things}}
+}
 
-{\bfseries Solution}: change the way we name iterates.
+% So that doesn't help much
+
+\begin{frame}{A new labeling scheme}
+
+{\Large\faLightbulbO}~New way to name iterates.
 
 \pause
+\vspace{1em}
 ``After read'' labeling~\parencite{leblond2016Asaga}. Increment counter each time we \emph{read} the vector of coefficients from shared memory.
 
-\faCheck~No dependency between $i_t$ and the cost of computing $\nabla f_{i_t}$.
+\pause
+{\Large \faCheck}~No dependency between $i_t$ and the cost of computing $\nabla f_{i_t}$.
 
-Full (hopefully correct) analysis of Hogwild and other asynchronous methods in \emph{``Improved parallel stochastic optimization analysis for
+{\Large \faCheck}~Full analysis of Hogwild and other asynchronous methods in \emph{``Improved parallel stochastic optimization analysis for
 incremental methods'', Leblond, P., and Lacoste-Julien} (submitted).
 \end{frame}
 
