@@ -11,7 +11,6 @@
 \usepackage[scale=2]{ccicons}
 \usepackage[beamer]{hf-tikz}
 
-\usepackage{minted}
 
 \usepackage{adjustbox} 
 \usepackage{pgfplots}
@@ -549,25 +548,28 @@ Unlike SGD, stores previous gradients ($\balpha$).
 
 \metroset{block=fill}
 \begin{alertblock}{Super easy to use in scikit-learn}
-\begin{minted}{python}
-from sklearn.linear_model import LogisticRegression
-clf = L
-\end{minted}
+\includegraphics[width=0.8\linewidth]{img/code}
+% \begin{verbatim}
+% from sklearn.linear_model import LogisticRegression
+% clf = LogisticRegression(solver='saga')
+% \end{verbatim}
 \end{alertblock}
 \end{frame}
 
 
-\begin{frame}{XXX}
-{\bfseries Motivation}: Can we derive an asynchronous parallel variant of this algorithm?
+\begin{frame}{Asynchronous SAGA}
+Can we derive an asynchronous parallel variant of SAGA?
 
 \end{frame}
 
 \begin{frame}{Sparse SAGA}
 
-A large part of large scale datasets are sparse.
-
-\vspace{1em}
-For sparse datasets and generalized linear models (e.g., least squares, logistic regression, etc.), partial gradients $\nabla f_i$ are sparse too.
+{\bfseries Need for a sparse varinat of SAGA}
+\begin{itemize}
+\item A large part of large scale datasets are sparse.
+\item For sparse datasets and generalized linear models (e.g., least squares, logistic regression, etc.), partial gradients $\nabla f_i$ are sparse too.
+\item Asynchronous algorithms work best when updates are sparse.
+\end{itemize}
 
 \vspace{1em}
 SAGA update is inefficient
