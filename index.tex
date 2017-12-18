@@ -56,7 +56,7 @@
 \usetikzlibrary{matrix,chains,positioning,decorations.pathreplacing,arrows}
 
 
-\title{\huge Parallel Optimization and Machine Learning}
+\title{\huge Parallel Optimization in Machine Learning}
 \author{
 \large{\bfseries Fabian Pedregosa}}
 % {\normalsize{ includes work with Remi Leblond and Simon Lacoste-Julien}}}
@@ -234,6 +234,21 @@ Leaving out many parallel synchronous methods: ADMM~\parencite{glowinski1975appr
 
 \begin{frame}{Outline}
 Most of this is joint work with Remi Leblond and Simon Lacoste-Julien
+
+{
+% \hspace{1.8em}\includegraphics[width=0.2\linewidth]{img/fabian}
+\hspace{4.8em}\includegraphics[width=0.2\linewidth]{img/remi}
+\hspace{4.8em}\includegraphics[width=0.2\linewidth]{img/SLJ}
+}\\
+{\normalsize\vphantom{}
+% \hspace{0.5em} Fabian Pedregosa
+\hspace{4em} R\'emi Leblond \hspace{3em} Simon Lacoste--Julien}\\
+% \vphantom{}\\
+% \vphantom{}\includegraphics[width=0.3\linewidth]{img/logo_inria}
+% \includegraphics[width=0.12\linewidth]{img/ens.png}
+% \hspace{0.5em}\includegraphics[width=0.3\linewidth]{img/montreal}
+% \hspace{0.5em}\includegraphics[width=0.2\linewidth]{img/mila}
+
 \end{frame}
 
 
@@ -264,31 +279,65 @@ $$x^+ = x - \gamma \nabla f_i(x)$$
 
 
 
+\begin{frame}{Parallel synchronous gradient descent}
 
+Computation of gradient is distributed among $k$ workers
 
-\begin{frame}{Parallelizing gradient descent}
-
-Bottleneck in gradient descent $=$ compute $\nabla f(\xx)$.
-
-{\bfseries Idea:} Parallelize computation of $\nabla f(\xx)$:
-\begin{align*}
-\nabla f(\xx) &= \frac{1}{n} \sum_{i=1} \nabla f_i(\xx)\\ \pause
-&= X
-\end{align*}
-\begin{center}
+\begin{figure}
 {\centering\includegraphics[width=0.5\linewidth]{img/mapreduce}}
-\end{center}
+\end{figure}
+
+\begin{columns}
+\begin{column}{0.7\textwidth}  %%<--- here
+\begin{itemize}
+\item Workers can be: different computers, CPUs or GPUs
+
+\item Popular frameworks: Spark, Hadoop.
+\end{itemize}
+\end{column}
+\begin{column}{0.3\textwidth}  %%<--- here
+\includegraphics[width=\linewidth]{img/gpu}
+\end{column}
+\end{columns}
 \end{frame}
 
-\begin{frame}{Parallel SGD}
-This can also be extended to stochastic gradient descent.
 
-Instead of choosing one sample, choose a subset of $k$ samples, and compute their gradient in parallel.
+\begin{frame}{Parallel synchronous gradient descent}
 
-\begin{wrapfigure}{r}{0.3\textwidth} 
-\includegraphics[width=\linewidth]{img/gpu}
-\end{wrapfigure}
-This is the parallelization implemented in deep learning software: Tensorflow, PyTorch, etc.
+% {\bfseries Idea:} Parallelize computation of $\nabla f(\xx)$ .
+
+\begin{enumerate}
+\item Choose $n_1, \ldots n_k$ that sum to $n$.
+\item Distribute computation of $\nabla f(\xx)$ among $k$ nodes
+\begin{align*}
+\nabla f(\xx) &= \frac{1}{n} \sum_{i=1} \nabla f_i(\xx)\\ &= \frac{1}{k} \large(\underbrace{\frac{1}{n_1}\sum_{i=1}^{n_1} \nabla f_i(\xx)}_{\text{compute this in worker 1}} + \ldots + \underbrace{\frac{1}{n_1}\sum_{i=n_{k-1}}^{n_k} \nabla f_i(\xx)}_{\text{compute this in worker $k$}} \large)
+\end{align*}
+% {\centering\includegraphics[width=0.5\linewidth]{img/mapredu
+\item Perform the gradient descent update by a master node
+$$
+\xx^+ = \xx - \gamma \nabla f(\xx)
+$$
+\end{enumerate}
+\pause
+\faCheck~Trivial parallelization, same analysis as gradient descent.
+\faClose~Synchronization step every iteration (3.).
+\end{frame}
+
+\begin{frame}{Parallel synchronous SGD}
+Can also be extended to stochastic gradient descent.
+\begin{enumerate}
+\item Select $k$ samples $i_{0}, \ldots, i_{k}$ uniformly at random.
+\item Compute in parallel $\nabla f_{i_t}$ on worker $t$
+\item Perform the (mini-batch) stochastic gradient descent update
+$$
+\xx^+ = \xx - \gamma \frac{1}{k}\sum_{t=1}^k \nabla f_{i_t}(\xx)
+$$
+\end{enumerate}
+\pause
+\faCheck~Trivial parallelization, same analysis as (mini-batch) stochastic gradient descent.
+
+\faClose~Synchronization step every iteration (3.).
+% This is the parallelization implemented in deep learning software: Tensorflow, PyTorch, etc.
 \end{frame}
 
 \section{Asynchronous algorithms}
@@ -308,6 +357,7 @@ Synchronization is the bottleneck. \\
 \end{column}
 \end{columns}
 
+\pause
 Hogwild~\parencite{hogwild2011}: each core runs SGD in parallel, without synchronization, and updates the same vector of coefficients.
 
 {\bfseries In theory}: convergence under very strong assumptions.
@@ -321,27 +371,35 @@ Hogwild~\parencite{hogwild2011}: each core runs SGD in parallel, without synchro
 
 Each core follows the same procedure
 \begin{enumerate}
-\item Read the information from shared memory $\hat{\xx}$
-\item Sample $i \in \{1, \ldots, n\}$
-\item Compute partial gradient $\nabla f_i(\hat{\xx})$
-\item Write the SGD update to shared memory $\xx = \xx - \gamma \nabla f_i(\hat{\xx})$
+\item Read the information from shared memory $\hat{\xx}$.
+\item Sample $i \in \{1, \ldots, n\}$ uniformly at random.
+\item Compute partial gradient $\nabla f_i(\hat{\xx})$.
+\item Write the SGD update to shared memory $\xx = \xx - \gamma \nabla f_i(\hat{\xx})$.
 \end{enumerate}
 \pause
-\includegraphics[width=0.6\linewidth]{img/async_updates}
-
+\begin{figure}
+\centering\includegraphics[width=0.6\linewidth]{img/async_updates}
+\end{figure}
 \end{frame}
 
+\begin{frame}{Hogwild is fast}
 
-\begin{frame}{Hogwild}
+Hogwild can be very fast. 
+But its still SGD...
 
-Very popular method.
+\begin{figure}
+\includegraphics[width=0.8\linewidth]{img/figure_comparison_hogwild}
+\end{figure}
 
+\begin{itemize}
+\item With constant step size, bounces around the optimum.
 
-
-Hard to analyze
-
-Large gap between theory and practice.
+\item With decreasing step size, slow convergence.
+\end{itemize}
 \end{frame}
+
+% if you want some excitement ...
+\section{(A glipse into the) Analysis of asynchronous methods}
 
 \begin{frame}{Analysis of asynchronous methods}
 
@@ -362,23 +420,103 @@ Many of the things we are used to in classical optimization just break down in t
 \end{frame}
 
 
-\begin{frame}{Naming scheme in Hogiwild}
+
+\begin{frame}{Naming scheme in Hogwild}
 
 {\bfseries Simple, intuitive and wrong}
 
-the $t$-th iterate is the $t$-th time that any core has finished writing his update to shared memory. 
+Each time a core has finished writing to shared memory, increment iteration counter.
 
-Existing analysis of Hogwild is wrong
+$\iff$ $\hat{\xx}_t = (t+1)$-th succesfull update.
 
-Relies on unbiased estimate of the gradient
+\vspace{1em}\faWarning~In this framework, the value of $\hat{\xx}_t$ and $i_t$ are not determined until the iteration has finished.
 
+$\implies$ $\hat{\xx}_t$ and $i_t$  are not necessarily independent.
 
-To break dependency we 
 \end{frame}
 
-\begin{frame}{XX}
-SAGA, available in scikit-learn as
+\begin{frame}{Unbiased gradient estimate}
+SGD-like algorithms crucially rely on the property that update is unbiased estimate of the gradient, i.e., $\mathbb{E}_i[\nabla f_i(\xx)] = \nabla f(\xx)$.
+
+For synchronous algorithms, this follows from the uniform sampling of $i$ 
+\begin{align*}
+\mathbb{E}_i[\nabla f_i(\xx)] &= \sum_{i=1}^n \text{Proba}(\text{selecting}~i) \nabla f_i(\xx)\\
+ &\stackrel{\text{uniform sampling}}{=} \sum_{i=1}^n \frac{1}{n} \nabla f_i(\xx) = \nabla f(\xx)
+\end{align*}
 \end{frame}
+
+\begin{frame}{A problematic example}
+
+Selecting $i$ uniformly at random is not enough. 
+
+\pause
+{\bfseries Illustration}: problem with two samples and two cores $f = \frac{1}{2}(f_1 + f_2)$. Computing $\nabla f_1$ is much expensive than $\nabla f_2$.
+
+Start at $\xx_0$. Because of the random sampling there are 4 possible scenarios:
+\begin{enumerate}
+\item Core 1 selects $f_1$, Core 2 selects $f_1$ $\implies$ $\xx_1 = \xx_0 - \nabla f_1(\xx)$
+\item Core 1 selects $f_1$, Core 2 selects $f_2$ $\implies$ $\xx_1 = \xx_0 - \nabla f_2(\xx)$
+\item Core 1 selects $f_2$, Core 2 selects $f_1$ $\implies$ $\xx_1 = \xx_0 - \nabla f_2(\xx)$
+\item Core 1 selects $f_2$, Core 2 selects $f_2$ $\implies$ $\xx_1 = \xx_0 - \nabla f_2(\xx)$
+\end{enumerate}
+So we have
+\begin{align*}
+\mathbb{E}_i\left[\nabla f_i\right] &= \frac{1}{4}f_1 + \frac{3}{4} f_2 \\
+&\neq \frac{1}{2}f_1 + \frac{1}{2} f_2 ~!!
+\end{align*}
+\end{frame}
+
+\section{The Art of Naming Things}
+
+\begin{frame}{The art of naming things}
+
+{\bfseries Solution}: change the way we name iterates.
+
+\pause
+``After read'' labeling~\parencite{leblond2016Asaga}. Increment counter each time we \emph{read} the vector of coefficients from shared memory.
+
+\faCheck~No dependency between $i_t$ and the cost of computing $\nabla f_{i_t}$.
+
+Full (hopefully correct) analysis of Hogwild and other asynchronous methods in \emph{``Improved parallel stochastic optimization analysis for
+incremental methods'', Leblond, P., and Lacoste-Julien} (submitted).
+\end{frame}
+
+\begin{frame}{Analysis}
+Analysis inspired by the perturbed iterate framework of \parencite{mania2015perturbed}. Distinguishes two quantities:
+\begin{itemize}
+\item $\hat{\xx}_t =$ $(t+1)$-th fully completed read from shared memory. 
+\item $\xx_{t+1} \defas \xx_{t} - \gamma \nabla f_i(\hat{\xx}_t)$
+\end{itemize}
+
+\end{frame}
+
+\section{Asynchronous SAGA}
+
+
+\begin{frame}{The SAGA algorithm}
+
+{\bfseries Setting:}
+$$
+\minimize_x \frac{1}{n} \sum_{i=1}^n f_i(\xx)
+$$ 
+
+The {\bfseries SAGA} algorithm~\parencite{defazio2014saga}.
+
+Select $i \in \{1, \ldots, n\}$ and compute $(\xx^+, \balpha^+)$ as
+$$
+\xx^+ = \xx - \gamma (\nabla f(\xx) - \balpha_i + \overline{\balpha})\,;~\balpha_i^+ = \nabla f_i(\xx)
+$$
+Unlike SGD, stores previous gradients ($\balpha$).
+\vspace{1em}\pause
+{\bfseries Motivation}: Can we derive an asynchronous parallel variant of this algorithm?
+\end{frame}
+
+
+\begin{frame}{X}
+\end{frame}
+
+\section{Asynchronous Proximal SAGA}
+
 
 
 \begin{frame}{Composite objective}
